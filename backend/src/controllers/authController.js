@@ -53,13 +53,13 @@ const login = asyncHandler(async (req, res) => {
 
   if (user.isLocked) {
     const minutesLeft = Math.ceil((user.lockUntil - Date.now()) / 60000);
-    throw new AppError(
+  throw new AppError(
       `Account temporarily locked due to repeated failed attempts. Try again in ${minutesLeft} minute(s).`,
       423
     );
   }
 
-  const isMatch = await user.comparePassword(password);
+  // const isMatch = await user.comparePassword(password);
 
   if (!isMatch) {
     user.failedLoginAttempts += 1;
