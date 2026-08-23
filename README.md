@@ -1,131 +1,213 @@
-# Savikro ISPM Platform
+# Savikro — Security Policy Awareness & Compliance Management Platform
 
-Security Policy Awareness & Compliance Management Platform for **Savikro Enterprises**, built for IE3072 – Information Security Policy Management (Group 14).
+Group 14 · IE3072 Information Security Policy Management · SLIIT
 
-A web application that gives sales, warehouse, administration and management staff a single place to read and acknowledge security policies, complete role-specific security training, report incidents, and gives management a compliance dashboard with exportable audit reports.
+Implementation of the platform described in `Spec_Group14_SecurityPolicyPlatform.md`.
 
-## Tech stack
+**Current state: M1 (Authentication & RBAC) complete.** M2–M5 are not yet built.
 
-| Layer | Technology |
+---
+
+## Quick start
+
+```bash
+cd backend && npm install && cp .env.example .env
+```
+
+Fill in `MONGO_URI` (Atlas or local) and generate the two secrets:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+```
+
+Then seed and run:
+
+Check the connection before anything else — it diagnoses the common Atlas
+failures instead of leaving you with a generic timeout:
+
+```bash
+cd backend && npm run check:db
+```
+
+Then seed and run:
+
+```bash
+cd backend && npm run seed && npm run dev
+```
+
+**Building M2–M5?** Read [docs/ADDING-A-MODULE.md](docs/ADDING-A-MODULE.md) first.
+It covers the conventions this foundation assumes — capability guards, scope
+resolution, the error envelope, and the tests each new endpoint needs.
+
+```bash
+cd frontend && npm install && npm run dev
+```
+
+The frontend proxies `/api` to `http://localhost:5000` (see `vite.config.js`), so both
+run same-origin in development and the auth cookies work without CORS configuration.
+
+### Demo accounts
+
+All use the password `Savikro#2026`.
+
+| Employee ID | Role | Department | Notes |
+|---|---|---|---|
+| `SVK-001` | ADMIN | Administration | Admin console |
+| `SVK-012` | MANAGER | Warehouse | Department dashboard |
+| `SVK-020` | EMPLOYEE | Sales | My Tasks |
+| `SVK-025` | EMPLOYEE | Administration | Forced password change on first login |
+| `SVK-030` | EMPLOYEE | Sales | Deactivated — cannot log in |
+
+---
+
+## What M1 delivers
+
+| Use case | Status |
 |---|---|
-| Frontend | React 18 (Vite), React Router, Axios, Recharts |
-| Backend | Node.js, Express.js |
-| Database | MongoDB (Mongoose) |
-| Auth | JWT (`jsonwebtoken`) + role-based access control enforced at the API layer |
-| Security | `bcryptjs` (password hashing), `helmet` (HTTP headers), `zod` (input validation), `express-rate-limit` (login throttling), account lockout after repeated failed logins |
-| Reporting | `exceljs` (Excel export), `pdfkit` (PDF export) |
-| File uploads | `multer` (incident attachments) |
+| UC-02 Log in, with all alternate flows | Done |
+| UC-03 Log out / session expiry | Done |
+| UC-04 Change own password | Done |
+| US-003 Forced change of a temporary password | Done |
+| US-004 Lockout after 5 failed attempts | Done |
+| US-005 30-minute inactivity timeout | Done |
+| US-007 Immediate session revocation | Done (mechanism; admin UI is a later sprint) |
+| RBAC middleware + capability catalogue | Done |
+| Append-only audit log | Done |
 
-## Project structure
+Deferred: UC-01/UC-05 admin user management screens (accounts come from the seed
+script for now), UC-06 step-up re-authentication, and real SMTP.
 
+---
+
+## Authentication design
+
+**Both tokens are `httpOnly` cookies.** The SPA never reads, stores or attaches a
+token — `withCredentials: true` is the entire client-side auth wiring, and an XSS
+payload has nothing to steal.
+
+- **Access token** — JWT, 15 minutes. Claims: `sub`, `role`, `department`,
+  `tokenVersion`, `auth_time`.
+- **Refresh token** — a 32-byte opaque random value, *not* a JWT. Only its SHA-256
+  digest is stored, so a database dump yields no usable session credentials. Scoped
+  to `Path=/api/v1/auth`, `SameSite=Strict`, 7 days, with a TTL index.
+
+**Rotation and reuse detection.** Every refresh mints a new token and marks the old
+one `revokedAt` with a `replacedBy` link. Presenting an already-exchanged token means
+the value leaked, so the entire chain is revoked, `tokenVersion` is incremented
+(killing live access tokens too), and `AUTH_TOKEN_REUSE_DETECTED` is audited.
+
+**Authority comes from the database, not the token.** `authenticate` re-reads `role`,
+`status` and `tokenVersion` on every request. A token minted before a role change,
+deactivation or password change is still cryptographically valid — this is what makes
+those changes take effect on the very next request rather than up to 15 minutes later.
+
+### RBAC
+
+`backend/src/constants/permissions.js` encodes the spec §3.3 permission matrix as
+data. Routes declare a capability, never a role:
+
+```js
+router.get('/dashboard', authenticate,
+  requireCapability(CAPABILITIES.COMPLIANCE_VIEW_DEPARTMENT), controller.dashboard);
 ```
-ISPM Porject/
-├── backend/                  Express API
-│   ├── src/
-│   │   ├── config/           env, DB connection, shared enums/constants
-│   │   ├── models/           Mongoose schemas
-│   │   ├── middleware/       auth, RBAC, validation, rate limiting, errors, uploads
-│   │   ├── controllers/      route handlers / business logic
-│   │   ├── routes/           Express routers
-│   │   ├── validators/       Zod request-body schemas
-│   │   ├── utils/            asyncHandler, AppError, JWT helper
-│   │   ├── app.js            Express app (middleware + routes)
-│   │   └── server.js         entrypoint (connects DB, starts HTTP server)
-│   ├── seed/seed.js          demo data (admin + one user per dept, policies, training, incident)
-│   └── uploads/incidents/    uploaded incident attachments (gitignored)
-│
-├── frontend/                 React app (Vite)
-│   └── src/
-│       ├── api/              Axios service modules, one per resource
-│       ├── context/          AuthContext (session, login/register/logout)
-│       ├── components/       Layout, route guards, shared UI (Loader, Alert, Badge)
-│       ├── pages/
-│       │   ├── auth/         Login, Register
-│       │   ├── dashboard/    role-aware landing page
-│       │   ├── policies/     policy list + detail/acknowledge
-│       │   ├── training/     training list + module/quiz view
-│       │   ├── incidents/    report + list + detail (with admin triage)
-│       │   ├── compliance/   dashboard with charts + Excel/PDF export
-│       │   └── admin/        policy/training/incident/user management console
-│       └── styles/index.css  design system (single stylesheet, CSS variables)
-│
-└── README.md                 you are here
-```
 
-## Architecture & modules
+`resolveScope` derives `{ level, department }` from `req.user` alone. A manager
+passing `?department=SALES` for a department that is not theirs is refused with 403
+and audited as `RBAC_SCOPE_VIOLATION` — the scope can be narrowed by a request, never
+widened.
 
-The system implements the five core modules from the project proposal:
+`GET /auth/me` returns the caller's capability list so the SPA can hide unusable
+controls. That is a usability affordance; the middleware is the control (NFR-SEC-03).
 
-1. **User Authentication & Authorization** — JWT sessions, bcrypt-hashed passwords, account lockout after repeated failed logins, and role-based access control enforced in Express middleware (`middleware/rbac.js`), not just hidden in the UI. A user's `role` doubles as their department (`sales` / `warehouse` / `administration` / `management`) for content targeting, plus a separate `admin` role for IT/system administrators. Self-registration cannot create an admin account.
-2. **Policy Management** — Policies are versioned (`Policy.versions[]`); publishing a new version doesn't overwrite history, so there's a full audit trail of who published what and when. Employees acknowledge a specific version (`PolicyAcknowledgment`), and a new version requires re-acknowledgment.
-3. **Security Training & Awareness** — Role-targeted training modules with an embedded quiz. Submissions are scored server-side against `correctOptionIndex`, which is never sent to non-admin clients before submission. Results are stored per user per module (`TrainingCompletion`).
-4. **Compliance Tracking & Reporting** — `/api/compliance/overview` aggregates policy-acknowledgment and training-completion rates per department, visible to `admin` and `management` roles. Exportable as Excel (`exceljs`) or PDF (`pdfkit`) for audit purposes.
-5. **Incident Reporting** — Any employee can report a suspicious email, lost device, unauthorized access attempt, malware, or other concern, with an optional attachment. Incidents get a default severity by type, a status timeline (`open → in_review → resolved`), and admins can triage/reassign them. Reporters can track their own report's status.
+---
 
-## Prerequisites
-
-- **Node.js 18+** and npm
-- **MongoDB** running locally (`mongodb://127.0.0.1:27017`) or a connection string to Atlas/another instance
-
-> This project was scaffolded in a sandboxed environment without outbound internet access, so `npm install` could not be run here. Run the install steps below on your own machine.
-
-## Setup
-
-### 1. Backend
+## Testing
 
 ```bash
-cd backend
-npm install
-copy .env.example .env
+cd backend && npm test          # 267 tests
+cd backend && npm run test:cov  # with coverage thresholds
 ```
 
-Edit `.env` if needed (Mongo URI, JWT secret, etc.), then:
+Uses Jest, Supertest and `mongodb-memory-server`, so the suite needs no running
+database and no credentials. The first run downloads a MongoDB binary (~60 MB,
+cached in `~/.cache/mongodb-binaries` and reused afterwards).
 
-```bash
-npm run seed   # creates demo accounts, policies, training & an incident
-npm run dev    # starts the API on http://localhost:5000
+Two suites are worth knowing about:
+
+- `tests/unit/permissions.matrix.test.js` — the spec §3.3 table transcribed cell for
+  cell, asserted against the capability catalogue. 54 assertions, one per cell.
+- `tests/integration/rbac.negative-paths.test.js` — NFR-SEC-03's requirement, met
+  literally: a real token for each role is fired at the guarded endpoint for *every*
+  capability. Generated from the catalogue, so a capability added later without a
+  guard cannot slip through.
+
+Service-layer coverage runs 92–100% against the 60% floor NFR-MNT-02 sets.
+
+---
+
+## Layout
+
+```
+backend/src/
+  config/         env (Zod-validated, throws in production), db
+  constants/      http, appErrorCode, roles, auditActions, permissions
+  models/         User, RefreshToken, AuditLog
+  modules/auth/   routes -> controller -> service -> model
+                  token / password / lockout services
+  modules/audit/  append-only audit writer
+  middleware/     authenticate, authorize, validate, rateLimit, security, errorHandler
+  utils/          AppError, AppAssert, asyncHandler, cookies, date
+
+frontend/src/
+  api/            axios client with deduped refresh-on-401
+  auth/           AuthContext, route guards, idle timer
+  pages/          Login, ChangePassword, role landing pages
 ```
 
-Demo accounts created by the seed script (password for all: `Passw0rd!`):
+---
 
-| Employee ID | Role |
+## Browser verification
+
+The SPA has been run end to end against the API. Confirmed:
+
+| Check | Result |
 |---|---|
-| `ADM001` | Admin (IT administrator) |
-| `SAL001` | Sales |
-| `WHS001` | Warehouse |
-| `ADN001` | Administration |
-| `MGT001` | Management (compliance dashboard, read-only) |
+| Login as ADMIN / MANAGER / EMPLOYEE | Each lands on its own home screen |
+| `localStorage`, `sessionStorage`, `document.cookie` | All empty — both tokens are httpOnly and unreadable by JS (NFR-SEC-07) |
+| Hard reload of a deep link | Session restored by silent refresh; no login flash |
+| MANAGER visiting `/admin` | Redirected to `/forbidden` |
+| MANAGER department scope | Fixed to their own department, server-side |
+| Forced password change (`SVK-025`) | Login lands on `/change-password`; navigating away bounces back; completing it unblocks the app |
+| Logout | Cookies cleared, refresh token revoked |
 
-### 2. Frontend
+A bug was found and fixed during this pass: React StrictMode double-invoked the
+mount effect, firing two concurrent `POST /auth/refresh` calls. Because refresh
+tokens rotate and a replayed token is treated as theft, that race could burn the
+session. All refresh paths now share one de-duplicated in-flight promise
+(`refreshSession` in `frontend/src/api/client.js`).
 
-In a second terminal:
+---
 
-```bash
-cd frontend
-npm install
-copy .env.example .env
-npm run dev
+## Styling
+
+Plain CSS in centralized stylesheets. Components carry semantic class names only —
+no inline styles and no utility classes in the markup.
+
+```
+frontend/src/styles/
+  index.css       entry point; imports the three below in order
+  base.css        design tokens (CSS custom properties), reset, typography
+  layout.css      app shell — top bar, main region, page containers, tile grid
+  components.css  reusable primitives — card, button, field, alert, chip, spinner
 ```
 
-Open **http://localhost:5173**. The Vite dev server proxies `/api` and `/uploads` to the backend on port 5000 (see `vite.config.js`), so the frontend `.env` can be left blank in development.
+Colours, radii, shadow and the 44 px touch target are CSS custom properties on
+`:root` in `base.css`, so a theme change happens in one place. This departs from the
+spec's mention of TailwindCSS, at the team's direction.
 
-### 3. Build for production
+---
 
-```bash
-cd frontend && npm run build
-```
+## Known gaps
 
-This outputs static files to `frontend/dist/`, which can be served by any static host or by the Express backend (e.g. via `express.static`) behind HTTPS/TLS termination (nginx, a cloud load balancer, etc.) — see the Non-Functional Requirements note below.
-
-## Known limitations / suggested next steps
-
-- The admin UI covers creating policies/training and publishing new policy versions, but there's no "edit existing training module" screen yet — the backend `PATCH /api/training/:id` endpoint exists and is ready for a form to be wired up to it.
-- Email/SMS alerting for high-severity incidents is stubbed as a server log (`console.warn`) in `incidentController.js` — swap in a real mail/SMS provider call there for production use.
-- No automated test suite yet. `backend` is structured for easy unit testing of controllers (pure functions wrapped by `asyncHandler`) — Jest + `mongodb-memory-server` would be a natural fit.
-- `npm install` could not be run while building this scaffold (no outbound network access in the build sandbox), so dependency versions in `package.json` haven't been installed/lockfiled yet — run `npm install` in both `backend/` and `frontend/` on a machine with internet access to generate `package-lock.json` and verify everything resolves cleanly.
-
-## Notes on scope vs. the proposal
-
-- HTTPS/TLS termination, firewall configuration, and integration with Savikro's external ERP/inventory systems are explicitly out of scope per the proposal and are not implemented here — this is the web application prototype.
-- The compliance report PDF/Excel export matches "2.3 Project Deliverables — an exportable (PDF/Excel) compliance report demonstrating the dashboard's audit output."
-- Password policy, RBAC enforcement, HTTPS-ready headers (`helmet`), and rate limiting satisfy the Security non-functional requirement described in section 3.2 of the proposal; enabling actual TLS is a deployment-time concern (reverse proxy or hosting platform), not application code.
+- Account-lockout notification email is a marked call site awaiting the notification
+  module.

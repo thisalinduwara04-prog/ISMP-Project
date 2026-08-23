@@ -1,7 +1,7 @@
-// Wraps an async Express route handler so rejected promises are forwarded
-// to next(err) instead of crashing the process or hanging the request.
-const asyncHandler = (fn) => (req, res, next) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
+// Express 4 does not catch rejections from async handlers, so an unhandled
+// promise rejection would hang the request instead of reaching errorHandler.
+// Wrapping every async route in this forwards rejections to next().
+const asyncHandler = (handler) => (req, res, next) =>
+  Promise.resolve(handler(req, res, next)).catch(next);
 
 module.exports = asyncHandler;

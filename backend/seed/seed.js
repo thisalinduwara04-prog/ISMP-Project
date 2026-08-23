@@ -1,229 +1,180 @@
 /* eslint-disable no-console */
-// Populates a fresh database with a demo admin account, one employee per
-// department, a couple of published policies, a training module with a
-// quiz, and a sample incident - enough to explore every module immediately
-// after setup. Safe to re-run: it wipes and recreates the collections it
-// touches.
-require('dotenv').config();
+// Creates the M1 account set: one admin, a manager per department, and
+// employees across all four departments. Until admin user management (UC-01)
+// lands, this is how accounts come into existence.
+//
+// Safe to re-run: it clears only the collections it owns.
+
 const mongoose = require('mongoose');
+
 const env = require('../src/config/env');
-
 const User = require('../src/models/User');
-const Policy = require('../src/models/Policy');
-const TrainingModule = require('../src/models/TrainingModule');
-const Incident = require('../src/models/Incident');
-const PolicyAcknowledgment = require('../src/models/PolicyAcknowledgment');
-const TrainingCompletion = require('../src/models/TrainingCompletion');
-const { DEFAULT_SEVERITY_BY_TYPE, INCIDENT_STATUS } = require('../src/config/constants');
+const RefreshToken = require('../src/models/RefreshToken');
+const { ROLES, DEPARTMENTS } = require('../src/constants/roles');
+const redactUri = require('../src/utils/redactUri');
 
-async function seed() {
-  await mongoose.connect(env.mongoUri);
-  console.log('[seed] Connected to', env.mongoUri);
+const DEMO_PASSWORD = 'Savikro#2026';
 
-  await Promise.all([
-    User.deleteMany({}),
-    Policy.deleteMany({}),
-    TrainingModule.deleteMany({}),
-    Incident.deleteMany({}),
-    PolicyAcknowledgment.deleteMany({}),
-    TrainingCompletion.deleteMany({}),
-  ]);
-  console.log('[seed] Cleared existing data');
+const ACCOUNTS = [
+  // --- Administrator ---
+  {
+    employeeId: 'SVK-001',
+    fullName: 'Dilhan Wickramasinghe',
+    email: 'admin@savikro.lk',
+    role: ROLES.ADMIN,
+    department: DEPARTMENTS.ADMINISTRATION,
+    jobTitle: 'IT & Security Administrator',
+  },
 
-  const password = await User.hashPassword('Passw0rd!');
+  // --- Managers, one per department ---
+  {
+    employeeId: 'SVK-010',
+    fullName: 'Ruwan Jayasuriya',
+    email: 'ruwan.jayasuriya@savikro.lk',
+    role: ROLES.MANAGER,
+    department: DEPARTMENTS.MANAGEMENT,
+    jobTitle: 'General Manager',
+  },
+  {
+    employeeId: 'SVK-011',
+    fullName: 'Chamari Gunasekara',
+    email: 'chamari.gunasekara@savikro.lk',
+    role: ROLES.MANAGER,
+    department: DEPARTMENTS.SALES,
+    jobTitle: 'Sales Manager',
+  },
+  {
+    employeeId: 'SVK-012',
+    fullName: 'Sunil Rathnayake',
+    email: 'sunil.rathnayake@savikro.lk',
+    role: ROLES.MANAGER,
+    department: DEPARTMENTS.WAREHOUSE,
+    jobTitle: 'Warehouse Supervisor',
+  },
+  {
+    employeeId: 'SVK-013',
+    fullName: 'Priyanka de Silva',
+    email: 'priyanka.desilva@savikro.lk',
+    role: ROLES.MANAGER,
+    department: DEPARTMENTS.ADMINISTRATION,
+    jobTitle: 'Administration Manager',
+  },
 
-  const [admin, sales, warehouse, admin2, mgmt] = await User.create([
-    {
-      name: 'IT Administrator',
-      employeeId: 'ADM001',
-      email: 'admin@savikro.lk',
-      department: 'administration',
-      role: 'admin',
-      passwordHash: password,
-    },
-    {
-      name: 'Nimal Perera',
-      employeeId: 'SAL001',
-      email: 'nimal.perera@savikro.lk',
-      department: 'sales',
-      role: 'sales',
-      passwordHash: password,
-    },
-    {
-      name: 'Kamal Silva',
-      employeeId: 'WHS001',
-      email: 'kamal.silva@savikro.lk',
-      department: 'warehouse',
-      role: 'warehouse',
-      passwordHash: password,
-    },
-    {
-      name: 'Anusha Fernando',
-      employeeId: 'ADN001',
-      email: 'anusha.fernando@savikro.lk',
-      department: 'administration',
-      role: 'administration',
-      passwordHash: password,
-    },
-    {
-      name: 'Ruwan Jayasuriya',
-      employeeId: 'MGT001',
-      email: 'ruwan.jayasuriya@savikro.lk',
-      department: 'management',
-      role: 'management',
-      passwordHash: password,
-    },
-  ]);
-  console.log('[seed] Users created:', [admin, sales, warehouse, admin2, mgmt].map((u) => u.employeeId).join(', '));
+  // --- Employees ---
+  {
+    employeeId: 'SVK-020',
+    fullName: 'Nimal Perera',
+    email: 'nimal.perera@savikro.lk',
+    role: ROLES.EMPLOYEE,
+    department: DEPARTMENTS.SALES,
+    jobTitle: 'Sales Executive',
+  },
+  {
+    employeeId: 'SVK-021',
+    fullName: 'Ishara Fernando',
+    email: 'ishara.fernando@savikro.lk',
+    role: ROLES.EMPLOYEE,
+    department: DEPARTMENTS.SALES,
+    jobTitle: 'Sales Coordinator',
+  },
+  {
+    employeeId: 'SVK-022',
+    fullName: 'Kamal Silva',
+    email: 'kamal.silva@savikro.lk',
+    role: ROLES.EMPLOYEE,
+    department: DEPARTMENTS.WAREHOUSE,
+    jobTitle: 'Stores Assistant',
+  },
+  {
+    employeeId: 'SVK-023',
+    fullName: 'Tharindu Bandara',
+    email: 'tharindu.bandara@savikro.lk',
+    role: ROLES.EMPLOYEE,
+    department: DEPARTMENTS.WAREHOUSE,
+    jobTitle: 'Inventory Clerk',
+  },
+  {
+    employeeId: 'SVK-024',
+    fullName: 'Anusha Fernando',
+    email: 'anusha.fernando@savikro.lk',
+    role: ROLES.EMPLOYEE,
+    department: DEPARTMENTS.ADMINISTRATION,
+    jobTitle: 'Accounts Assistant',
+  },
 
-  const policies = await Policy.create([
-    {
-      title: 'Acceptable Use Policy',
-      category: 'General',
-      description: 'Governs acceptable use of company IT assets and the ISPM application.',
-      targetRoles: [],
-      status: 'published',
-      createdBy: admin._id,
-      versions: [
-        {
-          versionNumber: 1,
-          content:
-            'All employees must use company IT assets, including this application, solely for authorised business purposes. ' +
-            'Company credentials must not be shared. Customer, supplier and pricing data accessed through this system must ' +
-            'not be copied to personal devices or shared outside the organisation without management approval.',
-          changeNotes: 'Initial version',
-          publishedBy: admin._id,
-        },
-      ],
-    },
-    {
-      title: 'Customer & Supplier Data Handling Policy',
-      category: 'Data Protection',
-      description: 'How sales and administrative staff must handle customer contracts and supplier pricing data.',
-      targetRoles: ['sales', 'administration', 'management'],
-      status: 'published',
-      createdBy: admin._id,
-      versions: [
-        {
-          versionNumber: 1,
-          content:
-            'Customer contracts, quotations, and LS Electric supplier pricing data are commercially sensitive. ' +
-            'Do not forward pricing sheets to personal email. Verify the identity of anyone requesting quotation ' +
-            'or contract details before sharing. Store documents only in approved company systems.',
-          changeNotes: 'Initial version',
-          publishedBy: admin._id,
-        },
-      ],
-    },
-    {
-      title: 'Warehouse Device & Stock Security Policy',
-      category: 'Physical Security',
-      description: 'Security expectations for handheld scanners, stock records and warehouse devices.',
-      targetRoles: ['warehouse'],
-      status: 'published',
-      createdBy: admin._id,
-      versions: [
-        {
-          versionNumber: 1,
-          content:
-            'Handheld scanners and stock-record devices must be logged out and secured at the end of each shift. ' +
-            'Report a lost or damaged device to IT/admin immediately via the Incident Reporting module.',
-          changeNotes: 'Initial version',
-          publishedBy: admin._id,
-        },
-      ],
-    },
-  ]);
-  console.log('[seed] Policies created:', policies.map((p) => p.title).join(', '));
+  // Demonstrates the forced-change flow (US-003): this account must replace
+  // its temporary password before it can use anything else.
+  {
+    employeeId: 'SVK-025',
+    fullName: 'Sanduni Rajapaksa',
+    email: 'sanduni.rajapaksa@savikro.lk',
+    role: ROLES.EMPLOYEE,
+    department: DEPARTMENTS.ADMINISTRATION,
+    jobTitle: 'Office Assistant',
+    mustChangePassword: true,
+  },
 
-  await PolicyAcknowledgment.create({
-    policy: policies[0]._id,
-    versionNumber: 1,
-    user: sales._id,
+  // Demonstrates that a deactivated account cannot log in (UC-02, 3b).
+  {
+    employeeId: 'SVK-030',
+    fullName: 'Former Employee',
+    email: 'former.employee@savikro.lk',
+    role: ROLES.EMPLOYEE,
+    department: DEPARTMENTS.SALES,
+    jobTitle: 'Sales Executive (left)',
+    status: 'INACTIVE',
+  },
+];
+
+const seed = async () => {
+  if (env.isProduction) {
+    throw new Error('Refusing to run the seed script against a production database.');
+  }
+
+  await mongoose.connect(env.MONGO_URI);
+  // Redacted: the connection string carries the database password, and this
+  // output routinely gets pasted into chats, tickets and screenshots.
+  console.log(`[seed] Connected to ${redactUri(env.MONGO_URI)}`);
+
+  await Promise.all([User.deleteMany({}), RefreshToken.deleteMany({})]);
+  console.log('[seed] Cleared users and sessions');
+
+  // Created one at a time rather than with insertMany, because the password
+  // hashing hook lives on `save` and insertMany bypasses it - which would
+  // store the demo password in plaintext.
+  const created = [];
+  for (const account of ACCOUNTS) {
+    // eslint-disable-next-line no-await-in-loop
+    created.push(await User.create({ ...account, passwordHash: DEMO_PASSWORD }));
+  }
+
+  await User.syncIndexes();
+  await RefreshToken.syncIndexes();
+  console.log('[seed] Indexes synchronised');
+
+  console.log(`\n[seed] Created ${created.length} accounts. Password for all: ${DEMO_PASSWORD}\n`);
+  console.log('  Employee ID  Role      Department       Name');
+  console.log('  -----------  --------  ---------------  ----------------------');
+  created.forEach((u) => {
+    const notes = [];
+    if (u.mustChangePassword) notes.push('must change password');
+    if (u.status !== 'ACTIVE') notes.push('DEACTIVATED');
+    console.log(
+      `  ${u.employeeId.padEnd(11)}  ${u.role.padEnd(8)}  ${u.department.padEnd(15)}  ${u.fullName}` +
+        (notes.length ? `  <- ${notes.join(', ')}` : '')
+    );
   });
 
-  const trainingModules = await TrainingModule.create([
-    {
-      title: 'Password Security Essentials',
-      description: 'Why strong, unique passwords matter and how to manage them safely.',
-      content:
-        'Use a unique password for every system. Prefer a passphrase of 12+ characters. Never write passwords on ' +
-        'paper left at your desk or share them with colleagues, even temporarily. Report any suspected password ' +
-        'compromise immediately.',
-      mediaUrl: '',
-      estimatedMinutes: 5,
-      targetRoles: [],
-      passingScorePercent: 70,
-      createdBy: admin._id,
-      quiz: [
-        {
-          questionText: 'What is the minimum recommended passphrase length?',
-          options: ['4 characters', '6 characters', '12+ characters', 'No minimum'],
-          correctOptionIndex: 2,
-        },
-        {
-          questionText: 'Is it acceptable to share your password with a trusted colleague temporarily?',
-          options: ['Yes, always', 'Only with management', 'No, never', 'Only over the phone'],
-          correctOptionIndex: 2,
-        },
-      ],
-    },
-    {
-      title: 'Handling Customer Quotations Securely',
-      description: 'Role-specific guidance for sales staff on protecting quotation and pricing data.',
-      content:
-        'Quotation and pricing data must only be sent to verified customer contacts. Double-check recipient email ' +
-        'addresses before sending. Do not discuss pricing over unsecured public channels.',
-      estimatedMinutes: 6,
-      targetRoles: ['sales'],
-      passingScorePercent: 70,
-      createdBy: admin._id,
-      quiz: [
-        {
-          questionText: 'Before sending a quotation, you should:',
-          options: [
-            'Send it immediately to save time',
-            'Verify the recipient email address',
-            'CC your personal email as backup',
-            'Post it in a public group chat',
-          ],
-          correctOptionIndex: 1,
-        },
-      ],
-    },
-  ]);
-  console.log('[seed] Training modules created:', trainingModules.map((m) => m.title).join(', '));
-
-  await TrainingCompletion.create({
-    user: sales._id,
-    trainingModule: trainingModules[0]._id,
-    score: 100,
-    totalQuestions: 2,
-    correctAnswers: 2,
-    passed: true,
-  });
-
-  const incident = await Incident.create({
-    reporter: warehouse._id,
-    type: 'lost_device',
-    description: 'Handheld barcode scanner from Bay 3 is missing after the evening shift changeover.',
-    severity: DEFAULT_SEVERITY_BY_TYPE.lost_device,
-    status: INCIDENT_STATUS.OPEN,
-    timeline: [{ status: INCIDENT_STATUS.OPEN, note: 'Reported by employee.', changedBy: warehouse._id }],
-  });
-  console.log('[seed] Sample incident created:', incident._id.toString());
-
-  console.log('\n[seed] Done. Demo accounts (password for all: Passw0rd!):');
-  console.log('  Admin:          ADM001');
-  console.log('  Sales:          SAL001');
-  console.log('  Warehouse:      WHS001');
-  console.log('  Administration: ADN001');
-  console.log('  Management:     MGT001');
+  console.log('\n[seed] Suggested logins:');
+  console.log('  Admin console       SVK-001');
+  console.log('  Department manager  SVK-012  (Warehouse)');
+  console.log('  Employee            SVK-020  (Sales)');
+  console.log('  Forced change       SVK-025');
 
   await mongoose.disconnect();
-}
+};
 
 seed().catch((err) => {
-  console.error('[seed] Failed:', err);
+  console.error('[seed] Failed:', err.message);
   process.exit(1);
 });

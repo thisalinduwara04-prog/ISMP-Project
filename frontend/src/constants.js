@@ -1,42 +1,46 @@
-// Mirrors backend/src/config/constants.js ROLES. Kept in sync manually
-// since frontend and backend are separate npm packages.
-export const ROLES = {
-  SALES: 'sales',
-  WAREHOUSE: 'warehouse',
-  ADMINISTRATION: 'administration',
-  MANAGEMENT: 'management',
-  ADMIN: 'admin',
+// Mirrors backend/src/constants/permissions.js. Used only to decide what to
+// render - never to decide what is allowed.
+export const CAPABILITIES = {
+  SELF_PASSWORD_CHANGE: 'SELF_PASSWORD_CHANGE',
+  POLICY_VIEW_ASSIGNED: 'POLICY_VIEW_ASSIGNED',
+  POLICY_ACKNOWLEDGE: 'POLICY_ACKNOWLEDGE',
+  COMPLIANCE_VIEW_SELF: 'COMPLIANCE_VIEW_SELF',
+  TRAINING_COMPLETE: 'TRAINING_COMPLETE',
+  INCIDENT_SUBMIT: 'INCIDENT_SUBMIT',
+  INCIDENT_VIEW_OWN: 'INCIDENT_VIEW_OWN',
+  COMPLIANCE_VIEW_DEPARTMENT: 'COMPLIANCE_VIEW_DEPARTMENT',
+  REMINDER_SEND: 'REMINDER_SEND',
+  REPORT_EXPORT: 'REPORT_EXPORT',
+  SIMULATION_VIEW_RESULTS: 'SIMULATION_VIEW_RESULTS',
+  COMPLIANCE_VIEW_ORGANISATION: 'COMPLIANCE_VIEW_ORGANISATION',
+  POLICY_AUTHOR: 'POLICY_AUTHOR',
+  TRAINING_AUTHOR: 'TRAINING_AUTHOR',
+  INCIDENT_TRIAGE: 'INCIDENT_TRIAGE',
+  USER_MANAGE: 'USER_MANAGE',
+  AUDIT_VIEW: 'AUDIT_VIEW',
+  SIMULATION_MANAGE: 'SIMULATION_MANAGE',
 };
 
-export const ALL_ROLES = Object.values(ROLES);
+export const ROLES = { EMPLOYEE: 'EMPLOYEE', MANAGER: 'MANAGER', ADMIN: 'ADMIN' };
+
+export const DEPARTMENT_LABELS = {
+  SALES: 'Sales',
+  WAREHOUSE: 'Warehouse',
+  ADMINISTRATION: 'Administration',
+  MANAGEMENT: 'Management',
+};
 
 export const ROLE_LABELS = {
-  sales: 'Sales',
-  warehouse: 'Warehouse',
-  administration: 'Administration',
-  management: 'Management',
-  admin: 'IT Administrator',
+  EMPLOYEE: 'Employee',
+  MANAGER: 'Manager',
+  ADMIN: 'Administrator',
 };
 
-export const COMPLIANCE_VIEWER_ROLES = [ROLES.ADMIN, ROLES.MANAGEMENT];
-
-export const INCIDENT_TYPE_LABELS = {
-  phishing_email: 'Phishing / suspicious email',
-  lost_device: 'Lost or stolen device',
-  suspicious_access: 'Suspicious access attempt',
-  malware: 'Malware / malicious file',
-  data_leak: 'Data leak / exposure',
-  other: 'Other',
+// UC-02 step 8: each role lands somewhere different after signing in.
+export const HOME_PATH_BY_ROLE = {
+  [ROLES.EMPLOYEE]: '/my-tasks',
+  [ROLES.MANAGER]: '/department',
+  [ROLES.ADMIN]: '/admin',
 };
 
-export const INCIDENT_STATUS_LABELS = {
-  open: 'Open',
-  in_review: 'In review',
-  resolved: 'Resolved',
-};
-
-export const SEVERITY_LABELS = {
-  low: 'Low',
-  medium: 'Medium',
-  high: 'High',
-};
+export const homePathFor = (user) => HOME_PATH_BY_ROLE[user?.role] || '/my-tasks';

@@ -1,0 +1,263 @@
+/* ---------------------------------------------------------------------------
+   Reusable UI primitives: cards, buttons, form fields, alerts, chips, spinner.
+   --------------------------------------------------------------------------- */
+
+/* --- Cards -------------------------------------------------------------- */
+
+.card {
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.tile {
+  position: relative;
+}
+
+.tile__module {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  background: var(--brand-tint);
+  color: var(--brand);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.tile__status {
+  font-size: 0.8125rem;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+/* --- Auth card ---------------------------------------------------------- */
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+}
+
+.auth-card__title {
+  margin-bottom: 0.25rem;
+}
+
+.auth-card__subtitle {
+  margin-bottom: 1.25rem;
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+}
+
+.auth-card__footnote {
+  margin: 1rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+/* --- Buttons ------------------------------------------------------------ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  min-height: var(--touch-target);
+  padding: 0.5rem 1rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: var(--brand);
+  color: #fff;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--brand-dark);
+}
+
+.btn--ghost {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.btn--ghost:hover {
+  background: var(--canvas);
+}
+
+.btn--sm {
+  min-height: 36px;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.8125rem;
+}
+
+.btn--block {
+  width: 100%;
+}
+
+/* --- Form fields -------------------------------------------------------- */
+
+.field {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.field__label {
+  display: block;
+  margin-bottom: 0.3125rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.field__input {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+  /* 16px minimum stops iOS Safari zooming the page on focus. */
+  font-size: 1rem;
+}
+
+.field__input:focus-visible {
+  border-color: var(--brand);
+  outline-offset: 1px;
+}
+
+.field__input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.field__error {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--danger);
+}
+
+/* --- Password rule checklist -------------------------------------------- */
+
+.rules {
+  display: grid;
+  gap: 0.25rem;
+  margin: -0.5rem 0 1rem;
+  padding: 0.75rem;
+  list-style: none;
+  background: var(--canvas);
+  border-radius: var(--radius-sm);
+}
+
+.rules__item {
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+.rules__item--met {
+  color: var(--ok);
+  font-weight: 600;
+}
+
+/* --- Alerts ------------------------------------------------------------- */
+
+.alert {
+  margin-bottom: 1rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+}
+
+.alert__title {
+  display: block;
+  margin-bottom: 0.125rem;
+}
+
+.alert__list {
+  margin: 0.375rem 0 0;
+  padding-left: 1.125rem;
+}
+
+.alert--error {
+  background: var(--danger-tint);
+  border-color: var(--danger-line);
+  color: var(--danger);
+}
+
+.alert--warning {
+  background: var(--warning-tint);
+  border-color: var(--warning-line);
+  color: var(--warning);
+}
+
+.alert--info {
+  background: var(--info-tint);
+  border-color: var(--info-line);
+  color: var(--info);
+}
+
+/* --- Capability chips --------------------------------------------------- */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  padding: 0.1875rem 0.5rem;
+  border-radius: 999px;
+  background: var(--brand-tint);
+  color: var(--brand-dark);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+/* --- Spinner ------------------------------------------------------------ */
+
+.spinner {
+  display: grid;
+  place-items: center;
+  gap: 0.75rem;
+  padding: 4rem 1rem;
+}
+
+.spinner__ring {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--line);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: spinner-rotate 700ms linear infinite;
+}
+
+.spinner__label {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+@keyframes spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}

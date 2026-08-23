@@ -1,0 +1,95 @@
+/* ---------------------------------------------------------------------------
+   Design tokens, reset and typography.
+   Every colour pairing used against --canvas or --surface clears WCAG 2.1 AA
+   contrast (NFR-USE-03).
+   --------------------------------------------------------------------------- */
+
+:root {
+  /* Text */
+  --ink: #10151c;
+  --ink-soft: #55606f;
+
+  /* Surfaces */
+  --canvas: #f4f6f9;
+  --surface: #ffffff;
+  --line: #dfe4ea;
+
+  /* Brand */
+  --brand: #16457a;
+  --brand-dark: #0f3159;
+  --brand-tint: #eaf1fa;
+
+  /* Status */
+  --danger: #a4262c;
+  --danger-tint: #fdf2f2;
+  --danger-line: #f0c4c6;
+  --warning: #8a5a00;
+  --warning-tint: #fff6e6;
+  --warning-line: #f0d9a8;
+  --info: #1c5b73;
+  --info-tint: #eaf5f9;
+  --info-line: #bcdde8;
+  --ok: #1a6b41;
+
+  /* Shape */
+  --radius: 10px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 2px rgba(16, 21, 28, 0.06), 0 8px 24px rgba(16, 21, 28, 0.06);
+
+  /* A comfortable thumb target for warehouse staff on a phone (NFR-USE-02). */
+  --touch-target: 44px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0 0 0.5rem;
+  line-height: 1.25;
+}
+
+h1 { font-size: 1.5rem; }
+h2 { font-size: 1.125rem; }
+
+p { margin: 0 0 1rem; }
+p:last-child { margin-bottom: 0; }
+
+/* A visible focus ring on every interactive element, for keyboard
+   navigability (NFR-USE-03). */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.muted { color: var(--ink-soft); }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

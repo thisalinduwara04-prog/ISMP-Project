@@ -1,0 +1,130 @@
+/* ---------------------------------------------------------------------------
+   Application shell: header bar, main region and page containers.
+   --------------------------------------------------------------------------- */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* --- Top bar ------------------------------------------------------------ */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.topbar__mark {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--brand);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.topbar__brand strong {
+  display: block;
+  font-size: 0.9375rem;
+}
+
+.topbar__brand small {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.topbar__user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.topbar__identity {
+  margin-right: 0.25rem;
+  text-align: right;
+}
+
+.topbar__identity strong {
+  display: block;
+  font-size: 0.875rem;
+}
+
+.topbar__identity small {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+/* Below 480px the name is dropped rather than wrapped - the sign-out control
+   matters more than the identity on a phone (NFR-USE-02). */
+@media (max-width: 479px) {
+  .topbar__identity {
+    display: none;
+  }
+}
+
+/* --- Main region -------------------------------------------------------- */
+
+.main {
+  flex: 1;
+  padding: 1.25rem 1rem 3rem;
+}
+
+.page {
+  display: grid;
+  gap: 1rem;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.page--centered {
+  max-width: 480px;
+  padding-top: 3rem;
+  text-align: center;
+}
+
+.page__header {
+  margin-bottom: 0.25rem;
+}
+
+.page__header p {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+/* --- Auth screens ------------------------------------------------------- */
+
+.auth-screen {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: 2rem 1rem;
+}
+
+/* --- Tile grid ---------------------------------------------------------- */
+
+.tiles {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}

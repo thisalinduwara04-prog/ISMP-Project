@@ -1,48 +1,63 @@
-import { NavLink, Outlet } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { ROLE_LABELS } from '../constants';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
 
-export default function Layout() {
-  const { user, logout, isAdmin, canViewCompliance } = useAuth();
+import { useAuth } from '../auth/AuthContext';
+import { useIdleTimer } from '../auth/useIdleTimer';
+import { ROLE_LABELS, DEPARTMENT_LABELS, homePathFor } from '../constants';
+
+const Layout = () => {
+  const { user, logout, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  // US-005: an unattended shared terminal signs itself out.
+  useIdleTimer(
+    async () => {
+      await logout();
+      navigate('/login', { replace: true, state: { reason: 'idle' } });
+    },
+    { enabled: isAuthenticated, timeoutMinutes: 30 }
+  );
 
   return (
-    <div className="app-shell">
+    <div className="app">
       <header className="topbar">
-        <div className="topbar-brand">
-          <span className="brand-mark">SV</span>
-          <div>
-            <div className="brand-title">Savikro ISPM</div>
-            <div className="brand-subtitle">Security Policy &amp; Compliance Platform</div>
-          </div>
-        </div>
+        <Link to={homePathFor(user)} className="topbar__brand">
+          <span className="topbar__mark">SV</span>
+          <span>
+            <strong>Savikro</strong>
+            <small>Security Policy &amp; Compliance</small>
+          </span>
+        </Link>
 
-        <nav className="topnav">
-          <NavLink to="/" end>
-            Dashboard
-          </NavLink>
-          <NavLink to="/policies">Policies</NavLink>
-          <NavLink to="/training">Training</NavLink>
-          <NavLink to="/incidents">Incidents</NavLink>
-          {canViewCompliance && <NavLink to="/compliance">Compliance</NavLink>}
-          {isAdmin && <NavLink to="/admin">Admin</NavLink>}
-        </nav>
-
-        <div className="topbar-user">
-          <div className="user-meta">
-            <div className="user-name">{user?.name}</div>
-            <div className="user-role">
-              {ROLE_LABELS[user?.role] || user?.role} · {user?.employeeId}
+        {user && (
+          <div className="topbar__user">
+            <div className="topbar__identity">
+              <strong>{user.fullName}</strong>
+              <small>
+                {ROLE_LABELS[user.role]} · {DEPARTMENT_LABELS[user.department]}
+              </small>
             </div>
+            <Link to="/change-password" className="btn btn--ghost btn--sm">
+              Password
+            </Link>
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              onClick={async () => {
+                await logout();
+                navigate('/login', { replace: true });
+              }}
+            >
+              Sign out
+            </button>
           </div>
-          <button className="btn btn-ghost" onClick={logout} type="button">
-            Log out
-          </button>
-        </div>
+        )}
       </header>
 
-      <main className="app-main">
+      <main className="main">
         <Outlet />
       </main>
     </div>
   );
-}
+};
+
+export default Layout;

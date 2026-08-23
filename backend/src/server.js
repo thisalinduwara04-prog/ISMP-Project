@@ -1,18 +1,39 @@
-const app = require('./app');
-const connectDB = require('./config/db');
+/* eslint-disable no-console */
 const env = require('./config/env');
+const { createApp } = require('./app');
+const { connectDatabase, disconnectDatabase } = require('./config/db');
+const redactUri = require('./utils/redactUri');
 
-async function start() {
-  await connectDB();
-  app.listen(env.port, () => {
-    // eslint-disable-next-line no-console
-    console.log(`[server] ISPM API listening on http://localhost:${env.port} (${env.nodeEnv})`);
+const start = async () => {
+  await connectDatabase();
+  console.log(`[db] Connected to ${redactUri(env.MONGO_URI)}`);
+
+  const app = createApp();
+  const server = app.listen(env.PORT, () => {
+    console.log(`[api] Listening on http://localhost:${env.PORT}/api/v1 (${env.NODE_ENV})`);
   });
-}
 
-start();
+  // Drain in-flight requests before dropping the database connection, so a
+  // deploy does not sever a request mid-write.
+  const shutdown = async (signal) => {
+    console.log(`\n[api] ${signal} received, shutting down.`);
+    server.close(async () => {
+      await disconnectDatabase();
+      console.log('[api] Shutdown complete.');
+      process.exit(0);
+    });
 
-process.on('unhandledRejection', (err) => {
-  // eslint-disable-next-line no-console
-  console.error('[server] Unhandled rejection:', err);
+    setTimeout(() => {
+      console.error('[api] Forced shutdown after 10s timeout.');
+      process.exit(1);
+    }, 10000).unref();
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+};
+
+start().catch((err) => {
+  console.error('[api] Failed to start:', err);
+  process.exit(1);
 });

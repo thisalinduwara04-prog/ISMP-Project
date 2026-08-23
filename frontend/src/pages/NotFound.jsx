@@ -1,13 +1,22 @@
 import { Link } from 'react-router-dom';
 
-export default function NotFound() {
+import { useAuth } from '../auth/AuthContext';
+import { homePathFor } from '../constants';
+
+const NotFound = () => {
+  const { user, isAuthenticated } = useAuth();
+
   return (
-    <div className="page page-narrow" style={{ textAlign: 'center', paddingTop: '4rem' }}>
-      <h1>404</h1>
-      <p className="muted">The page you're looking for doesn't exist.</p>
-      <Link className="btn btn-primary" to="/">
-        Back to dashboard
-      </Link>
+    <div className="page page--centered">
+      <div className="card">
+        <h1>Page not found</h1>
+        <p className="muted">That address does not exist.</p>
+        <Link to={isAuthenticated ? homePathFor(user) : '/login'} className="btn btn--primary">
+          {isAuthenticated ? 'Back to my home page' : 'Go to sign in'}
+        </Link>
+      </div>
     </div>
   );
-}
+};
+
+export default NotFound;

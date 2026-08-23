@@ -1,71 +1,61 @@
-import { Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
-import RoleRoute from './components/RoleRoute';
+import { Navigate, Route, Routes } from 'react-router-dom';
+
 import Layout from './components/Layout';
+import { ProtectedRoute, PublicOnlyRoute, RequireCapability } from './auth/guards';
+import { useAuth } from './auth/AuthContext';
+import { CAPABILITIES, homePathFor } from './constants';
 
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
-import Dashboard from './pages/dashboard/Dashboard';
-import PolicyList from './pages/policies/PolicyList';
-import PolicyDetail from './pages/policies/PolicyDetail';
-import TrainingList from './pages/training/TrainingList';
-import TrainingModuleView from './pages/training/TrainingModuleView';
-import IncidentList from './pages/incidents/IncidentList';
-import ReportIncident from './pages/incidents/ReportIncident';
-import IncidentDetail from './pages/incidents/IncidentDetail';
-import ComplianceDashboard from './pages/compliance/ComplianceDashboard';
-import AdminHome from './pages/admin/AdminHome';
-import AdminPolicies from './pages/admin/AdminPolicies';
-import PolicyForm from './pages/admin/PolicyForm';
-import PolicyAdminDetail from './pages/admin/PolicyAdminDetail';
-import AdminTraining from './pages/admin/AdminTraining';
-import TrainingForm from './pages/admin/TrainingForm';
-import AdminIncidents from './pages/admin/AdminIncidents';
-import AdminUsers from './pages/admin/AdminUsers';
+import Login from './pages/Login';
+import ChangePassword from './pages/ChangePassword';
+import MyTasks from './pages/home/MyTasks';
+import DepartmentDashboard from './pages/home/DepartmentDashboard';
+import AdminConsole from './pages/home/AdminConsole';
+import Forbidden from './pages/Forbidden';
 import NotFound from './pages/NotFound';
-import { ROLES, COMPLIANCE_VIEWER_ROLES } from './constants';
 
-export default function App() {
-  return (
-    <AuthProvider>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+// "/" is not a page: it forwards each role to its own landing screen.
+const RoleHome = () => {
+  const { user } = useAuth();
+  return <Navigate to={homePathFor(user)} replace />;
+};
 
-        <Route element={<ProtectedRoute />}>
-          <Route element={<Layout />}>
-            <Route path="/" element={<Dashboard />} />
+const App = () => (
+  <Routes>
+    <Route element={<PublicOnlyRoute />}>
+      <Route path="/login" element={<Login />} />
+    </Route>
 
-            <Route path="/policies" element={<PolicyList />} />
-            <Route path="/policies/:id" element={<PolicyDetail />} />
+    <Route element={<ProtectedRoute />}>
+      <Route element={<Layout />}>
+        <Route path="/" element={<RoleHome />} />
+        <Route path="/change-password" element={<ChangePassword />} />
 
-            <Route path="/training" element={<TrainingList />} />
-            <Route path="/training/:id" element={<TrainingModuleView />} />
+        {/* Every employee has these. */}
+        <Route path="/my-tasks" element={<MyTasks />} />
 
-            <Route path="/incidents" element={<IncidentList />} />
-            <Route path="/incidents/new" element={<ReportIncident />} />
-            <Route path="/incidents/:id" element={<IncidentDetail />} />
+        {/* Capability-gated. The API enforces the same rules regardless. */}
+        <Route
+          path="/department"
+          element={(
+            <RequireCapability capability={CAPABILITIES.COMPLIANCE_VIEW_DEPARTMENT}>
+              <DepartmentDashboard />
+            </RequireCapability>
+          )}
+        />
+        <Route
+          path="/admin"
+          element={(
+            <RequireCapability capability={CAPABILITIES.USER_MANAGE}>
+              <AdminConsole />
+            </RequireCapability>
+          )}
+        />
 
-            <Route element={<RoleRoute roles={COMPLIANCE_VIEWER_ROLES} />}>
-              <Route path="/compliance" element={<ComplianceDashboard />} />
-            </Route>
+        <Route path="/forbidden" element={<Forbidden />} />
+        <Route path="*" element={<NotFound />} />
+      </Route>
+    </Route>
+  </Routes>
+);
 
-            <Route element={<RoleRoute roles={[ROLES.ADMIN]} />}>
-              <Route path="/admin" element={<AdminHome />} />
-              <Route path="/admin/policies" element={<AdminPolicies />} />
-              <Route path="/admin/policies/new" element={<PolicyForm />} />
-              <Route path="/admin/policies/:id" element={<PolicyAdminDetail />} />
-              <Route path="/admin/training" element={<AdminTraining />} />
-              <Route path="/admin/training/new" element={<TrainingForm />} />
-              <Route path="/admin/incidents" element={<AdminIncidents />} />
-              <Route path="/admin/users" element={<AdminUsers />} />
-            </Route>
-
-            <Route path="*" element={<NotFound />} />
-          </Route>
-        </Route>
-      </Routes>
-    </AuthProvider>
-  );
-}
+export default App;
