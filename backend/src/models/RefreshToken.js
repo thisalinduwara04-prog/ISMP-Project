@@ -15,6 +15,7 @@ const refreshTokenSchema = new mongoose.Schema(
     ipAddress: { type: String, default: null },
 
     issuedAt: { type: Date, default: Date.now },
+    authTime: { type: Number, required: true, default: () => Math.floor(Date.now() / 1000) },
     expiresAt: { type: Date, required: true },
 
     revokedAt: { type: Date, default: null },

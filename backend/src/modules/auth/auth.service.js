@@ -24,8 +24,9 @@ const invalidCredentials = () =>
   new AppError(UNAUTHORIZED, 'Invalid employee ID or password.', AppErrorCode.INVALID_CREDENTIALS);
 
 const buildSession = async (user, context) => {
-  const accessToken = signAccessToken(user);
-  const { value: refreshToken } = await issueRefreshToken(user, context);
+  const authTime = Math.floor(Date.now() / 1000);
+  const accessToken = signAccessToken(user, authTime);
+  const { value: refreshToken } = await issueRefreshToken(user, { ...context, authTime });
   return { accessToken, refreshToken };
 };
 
@@ -190,10 +191,12 @@ const refresh = async (presentedToken, context = {}) => {
   // Claims are rebuilt from the freshly-loaded user, never copied from the old
   // token. (ZFit's refresh path drops `role` here, which silently breaks every
   // role check after the first refresh.)
-  const accessToken = signAccessToken(user);
+  const authTime = record.authTime || Math.floor(record.issuedAt.getTime() / 1000);
+  const accessToken = signAccessToken(user, authTime);
   const { value: refreshToken } = await issueRefreshToken(user, {
     ...context,
     replacesId: record._id,
+    authTime,
   });
 
   await audit.record({
@@ -287,4 +290,34 @@ const changePassword = async (userId, { currentPassword, newPassword }, context 
   return { user: user.toSafeJSON(), ...tokens };
 };
 
-module.exports = { login, refresh, logout, changePassword };
+const stepUp = async (userId, password, presentedRefreshToken, context = {}) => {
+  const user = await User.findById(userId).select('+passwordHash');
+  AppAssert(user, UNAUTHORIZED, 'Account not found.', AppErrorCode.INVALID_ACCESS_TOKEN);
+  const matches = await user.comparePassword(password);
+  if (!matches) {
+    await audit.recordForUser(user, {
+      action: AUDIT_ACTIONS.AUTH_STEP_UP_FAILURE,
+      outcome: AUDIT_OUTCOME.FAILURE,
+      entityType: AUDIT_ENTITY_TYPE.SESSION,
+      req: context.req,
+    });
+    throw invalidCredentials();
+  }
+
+  const authTime = Math.floor(Date.now() / 1000);
+  if (presentedRefreshToken) {
+    const { status, record } = await findRefreshToken(presentedRefreshToken);
+    if (status === 'ACTIVE' && record.userId.toString() === user._id.toString()) {
+      record.authTime = authTime;
+      await record.save();
+    }
+  }
+  await audit.recordForUser(user, {
+    action: AUDIT_ACTIONS.AUTH_STEP_UP_SUCCESS,
+    entityType: AUDIT_ENTITY_TYPE.SESSION,
+    req: context.req,
+  });
+  return { accessToken: signAccessToken(user, authTime) };
+};
+
+module.exports = { login, refresh, logout, changePassword, stepUp };

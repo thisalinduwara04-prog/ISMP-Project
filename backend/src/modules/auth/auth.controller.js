@@ -81,4 +81,15 @@ const changePassword = asyncHandler(async (req, res) => {
   return res.status(OK).json(ok(req, { user, capabilities: capabilitiesFor(user) }));
 });
 
-module.exports = { login, refresh, logout, me, changePassword };
+const stepUp = asyncHandler(async (req, res) => {
+  const { accessToken } = await authService.stepUp(
+    req.user._id,
+    req.body.password,
+    req.cookies[REFRESH_COOKIE],
+    requestContext(req)
+  );
+  setAuthCookies(res, { accessToken });
+  return res.status(OK).json(ok(req, { verifiedAt: new Date().toISOString() }));
+});
+
+module.exports = { login, refresh, logout, me, changePassword, stepUp };

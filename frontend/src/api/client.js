@@ -58,6 +58,7 @@ client.interceptors.response.use(
     // deactivated account or a bumped tokenVersion will fail again, so the
     // user is sent to the login screen instead.
     const code = response.data?.error?.code;
+    if (code === 'STEP_UP_REQUIRED') return Promise.reject(error);
     if (code && code !== 'ACCESS_TOKEN_EXPIRED') {
       onSessionExpired();
       return Promise.reject(error);

@@ -82,4 +82,17 @@ const requirePasswordChanged = (req, res, next) => {
   return next();
 };
 
-module.exports = { authenticate, requirePasswordChanged, extractToken };
+const requireRecentAuthentication = (maxAgeMinutes = 30) => (req, res, next) => {
+  const authTime = req.auth && req.auth.authTime;
+  const ageSeconds = authTime ? Math.floor(Date.now() / 1000) - authTime : Number.POSITIVE_INFINITY;
+  if (ageSeconds > maxAgeMinutes * 60) {
+    return next(new AppError(
+      UNAUTHORIZED,
+      'Please confirm your password before viewing organisation-wide compliance data.',
+      AppErrorCode.STEP_UP_REQUIRED
+    ));
+  }
+  return next();
+};
+
+module.exports = { authenticate, requirePasswordChanged, requireRecentAuthentication, extractToken };

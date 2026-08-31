@@ -32,4 +32,6 @@ const changePasswordSchema = z
   })
   .strict();
 
-module.exports = { loginSchema, changePasswordSchema, employeeIdSchema };
+const stepUpSchema = z.object({ password: loginPasswordSchema }).strict();
+
+module.exports = { loginSchema, changePasswordSchema, stepUpSchema, employeeIdSchema };

@@ -4,7 +4,11 @@ Group 14 · IE3072 Information Security Policy Management · SLIIT
 
 Implementation of the platform described in `Spec_Group14_SecurityPolicyPlatform.md`.
 
-**Current state: M1 (Authentication & RBAC) complete.** M2–M5 are not yet built.
+**Current state:** M1 (Authentication & RBAC) is complete. The
+`compliance-tracking-reporting` feature branch adds M4 dashboards, reminders,
+notifications and PDF/XLSX reporting. M2, M3 and M5 are not yet built; the seed
+script supplies representative assignment-ledger data so M4 can be demonstrated
+independently until policy and training publication flows are merged.
 
 ---
 
@@ -75,7 +79,17 @@ All use the password `Savikro#2026`.
 | Append-only audit log | Done |
 
 Deferred: UC-01/UC-05 admin user management screens (accounts come from the seed
-script for now), UC-06 step-up re-authentication, and real SMTP.
+script for now) and real SMTP infrastructure.
+
+## What M4 delivers
+
+- Personal compliance status and outstanding assignment list.
+- Department and organisation dashboards with enforced server-side scope.
+- Policy/training rates, overdue metrics, department chart and staff drill-down data.
+- Nightly overdue detection, automatic reminders and scoped manual reminders.
+- In-app notification feed with optional development SMTP delivery.
+- Filtered PDF and Excel compliance exports.
+- Password step-up for organisation-wide compliance data after 30 minutes.
 
 ---
 

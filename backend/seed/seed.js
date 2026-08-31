@@ -10,6 +10,8 @@ const mongoose = require('mongoose');
 const env = require('../src/config/env');
 const User = require('../src/models/User');
 const RefreshToken = require('../src/models/RefreshToken');
+const Assignment = require('../src/models/Assignment');
+const Notification = require('../src/models/Notification');
 const { ROLES, DEPARTMENTS } = require('../src/constants/roles');
 const redactUri = require('../src/utils/redactUri');
 
@@ -136,8 +138,13 @@ const seed = async () => {
   // output routinely gets pasted into chats, tickets and screenshots.
   console.log(`[seed] Connected to ${redactUri(env.MONGO_URI)}`);
 
-  await Promise.all([User.deleteMany({}), RefreshToken.deleteMany({})]);
-  console.log('[seed] Cleared users and sessions');
+  await Promise.all([
+    User.deleteMany({}),
+    RefreshToken.deleteMany({}),
+    Assignment.deleteMany({}),
+    Notification.deleteMany({}),
+  ]);
+  console.log('[seed] Cleared users, sessions and compliance demo data');
 
   // Created one at a time rather than with insertMany, because the password
   // hashing hook lives on `save` and insertMany bypasses it - which would
@@ -148,8 +155,44 @@ const seed = async () => {
     created.push(await User.create({ ...account, passwordHash: DEMO_PASSWORD }));
   }
 
+  const activeUsers = created.filter((user) => user.status === 'ACTIVE');
+  const now = new Date();
+  const daysFromNow = (days) => new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+  const catalogue = [
+    { itemId: new mongoose.Types.ObjectId(), itemType: 'POLICY', itemTitle: 'Acceptable Use Policy', dueIn: -10 },
+    { itemId: new mongoose.Types.ObjectId(), itemType: 'POLICY', itemTitle: 'Password and Access Control Policy', dueIn: 3 },
+    { itemId: new mongoose.Types.ObjectId(), itemType: 'TRAINING', itemTitle: 'Recognising Phishing Emails', dueIn: -2 },
+    { itemId: new mongoose.Types.ObjectId(), itemType: 'TRAINING', itemTitle: 'Safe Handling of Company Information', dueIn: 14 },
+  ];
+  const assignments = [];
+  activeUsers.forEach((user, userIndex) => {
+    catalogue.forEach((item, itemIndex) => {
+      const completed = (userIndex + itemIndex) % 4 !== 0;
+      const dueDate = daysFromNow(item.dueIn);
+      assignments.push({
+        userId: user._id,
+        department: user.department,
+        userRole: user.role,
+        itemType: item.itemType,
+        itemId: item.itemId,
+        itemTitle: item.itemTitle,
+        status: completed ? 'COMPLETED' : (dueDate < now ? 'OVERDUE' : 'PENDING'),
+        assignedAt: daysFromNow(-30),
+        dueDate,
+        completedAt: completed ? daysFromNow(-5) : null,
+        progress: item.itemType === 'TRAINING'
+          ? { completedItemIds: completed ? ['intro', 'quiz'] : ['intro'], percentComplete: completed ? 100 : 50 }
+          : undefined,
+      });
+    });
+  });
+  await Assignment.insertMany(assignments);
+  console.log(`[seed] Created ${assignments.length} compliance assignments`);
+
   await User.syncIndexes();
   await RefreshToken.syncIndexes();
+  await Assignment.syncIndexes();
+  await Notification.syncIndexes();
   console.log('[seed] Indexes synchronised');
 
   console.log(`\n[seed] Created ${created.length} accounts. Password for all: ${DEMO_PASSWORD}\n`);

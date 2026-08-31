@@ -65,7 +65,9 @@ const resolveScope = async (req, res, next) => {
 
   const { role, department } = req.user;
   const maxScope = MAX_SCOPE_FOR_ROLE[role] || SCOPE.SELF;
-  const requested = req.query ? req.query.department : undefined;
+  // GET dashboards carry scope in the query string; POST exports carry it in
+  // the validated body. Both are resolved by the same server-side rule.
+  const requested = (req.query && req.query.department) || (req.body && req.body.department);
 
   if (role === ROLES.ADMIN) {
     // An admin may look at one department or at everything.

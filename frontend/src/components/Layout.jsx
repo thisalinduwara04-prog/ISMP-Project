@@ -36,6 +36,9 @@ const Layout = () => {
                 {ROLE_LABELS[user.role]} · {DEPARTMENT_LABELS[user.department]}
               </small>
             </div>
+            <Link to="/notifications" className="btn btn--ghost btn--sm">
+              Notifications
+            </Link>
             <Link to="/change-password" className="btn btn--ghost btn--sm">
               Password
             </Link>
