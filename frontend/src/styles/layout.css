@@ -128,3 +128,9 @@
   gap: 1rem;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
 }
+
+/* Forms and long-form editing read better at a narrower measure than the
+   dashboards the default page width is sized for. */
+.page--narrow {
+  max-width: 46rem;
+}

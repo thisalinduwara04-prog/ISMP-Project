@@ -8,7 +8,19 @@ const validate = (schema, property = 'body') => (req, res, next) => {
   // Zod errors are shaped into the spec's `details` array by errorHandler.
   if (!result.success) return next(result.error);
 
-  req[property] = result.data;
+  // defineProperty rather than `req[property] = ...`. Express 4 exposes
+  // `req.query` as a getter on the request prototype with no setter, so a
+  // plain assignment fails SILENTLY in sloppy mode: validation would appear to
+  // pass while the handler still read the raw, untransformed query string.
+  // Defining an own property shadows the getter and works identically for
+  // `body` and `params`.
+  Object.defineProperty(req, property, {
+    value: result.data,
+    writable: true,
+    enumerable: true,
+    configurable: true,
+  });
+
   return next();
 };
 

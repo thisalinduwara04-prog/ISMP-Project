@@ -5,3 +5,5 @@ dist/
 .DS_Store
 backend/uploads/incidents/*
 !backend/uploads/incidents/.gitkeep
+backend/uploads/policies/*
+!backend/uploads/policies/.gitkeep

@@ -36,6 +36,16 @@ export const ROLE_LABELS = {
   ADMIN: 'Administrator',
 };
 
+// Mirrors the enum in backend/src/constants/policies.js.
+export const POLICY_CATEGORY_LABELS = {
+  GENERAL: 'General',
+  DATA_HANDLING: 'Data handling',
+  ACCESS_CONTROL: 'Access control',
+  DEVICE_SECURITY: 'Device security',
+  EMAIL_SECURITY: 'Email security',
+  INCIDENT_RESPONSE: 'Incident response',
+};
+
 // UC-02 step 8: each role lands somewhere different after signing in.
 export const HOME_PATH_BY_ROLE = {
   [ROLES.EMPLOYEE]: '/my-tasks',
