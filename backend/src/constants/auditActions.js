@@ -1,6 +1,11 @@
 // Actions recorded in the append-only `auditLogs` collection (spec section 7.14).
-// Only the M1 (authentication and RBAC) set is defined here; later modules add
-// their own entries as they land.
+// Modules add their own entries as they land.
+//
+// IMPORTANT: `AuditLog.action` is `enum: Object.values(AUDIT_ACTIONS)` and
+// `audit.record()` deliberately swallows its own failures so a logging problem
+// can never break a request. The consequence is that an action string missing
+// from this object does not error - it silently records nothing. Add the entry
+// here first, always.
 
 const AUDIT_ACTIONS = Object.freeze({
   AUTH_LOGIN_SUCCESS: 'AUTH_LOGIN_SUCCESS',
@@ -13,6 +18,14 @@ const AUDIT_ACTIONS = Object.freeze({
   AUTH_PASSWORD_CHANGED: 'AUTH_PASSWORD_CHANGED',
   RBAC_DENIED: 'RBAC_DENIED',
   RBAC_SCOPE_VIOLATION: 'RBAC_SCOPE_VIOLATION',
+
+  // M5 - Incident reporting
+  INCIDENT_SUBMITTED: 'INCIDENT_SUBMITTED',
+  INCIDENT_STATUS_CHANGED: 'INCIDENT_STATUS_CHANGED',
+  INCIDENT_SEVERITY_OVERRIDDEN: 'INCIDENT_SEVERITY_OVERRIDDEN',
+  INCIDENT_ASSIGNED: 'INCIDENT_ASSIGNED',
+  INCIDENT_ATTACHMENT_REJECTED: 'INCIDENT_ATTACHMENT_REJECTED',
+  INCIDENT_ATTACHMENT_DOWNLOADED: 'INCIDENT_ATTACHMENT_DOWNLOADED',
 });
 
 const AUDIT_OUTCOME = Object.freeze({

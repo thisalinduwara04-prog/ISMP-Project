@@ -26,6 +26,7 @@
     "mongodb": "^7.5.0",
     "mongoose": "^8.5.0",
     "morgan": "^1.10.0",
+    "multer": "^2.3.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

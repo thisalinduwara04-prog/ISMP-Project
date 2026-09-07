@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 import { useAuth } from '../../auth/AuthContext';
 import { DEPARTMENT_LABELS } from '../../constants';
 
@@ -21,6 +23,24 @@ const MyTasks = () => {
           Policies to read and training to complete will appear here once an administrator publishes
           them.
         </p>
+      </section>
+
+      {/* M5. Sits above the capability list because reporting is the one thing
+          on this screen an employee may need in a hurry. */}
+      <section className="card">
+        <h2>Seen something that looks wrong?</h2>
+        <p className="muted">
+          An odd email, a missing device, a screen left signed in — report it. You do not need to be
+          sure it is a real problem, and reporting is never treated as an admission of fault.
+        </p>
+        <div className="actions" style={{ marginTop: '1rem' }}>
+          <Link to="/incidents/new" className="btn btn--primary">
+            Report an incident
+          </Link>
+          <Link to="/incidents" className="btn btn--ghost">
+            My reports
+          </Link>
+        </div>
       </section>
 
       <section className="card">

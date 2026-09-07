@@ -1,15 +1,19 @@
+import { Link } from 'react-router-dom';
+
 import { useAuth } from '../../auth/AuthContext';
 import { CAPABILITIES } from '../../constants';
 
 // Landing page for ADMIN. The tiles below are rendered from the capability
 // list the server returned - hiding one the user lacks is a usability
 // courtesy, not the control. The API refuses the request either way.
+//
+// A tile with a `to` is a module that has landed; the rest are placeholders.
 const TILES = [
   { capability: CAPABILITIES.USER_MANAGE, title: 'User accounts', body: 'Create, deactivate and re-role staff.', module: 'M1' },
   { capability: CAPABILITIES.POLICY_AUTHOR, title: 'Policies', body: 'Author, version and publish security policies.', module: 'M2' },
   { capability: CAPABILITIES.TRAINING_AUTHOR, title: 'Training', body: 'Build modules and quizzes.', module: 'M3' },
   { capability: CAPABILITIES.COMPLIANCE_VIEW_ORGANISATION, title: 'Compliance', body: 'Organisation-wide dashboard and exports.', module: 'M4' },
-  { capability: CAPABILITIES.INCIDENT_TRIAGE, title: 'Incidents', body: 'Triage and resolve reported incidents.', module: 'M5' },
+  { capability: CAPABILITIES.INCIDENT_TRIAGE, title: 'Incidents', body: 'Triage and resolve reported incidents.', module: 'M5', to: '/incidents' },
   { capability: CAPABILITIES.AUDIT_VIEW, title: 'Audit log', body: 'Review security events and access denials.', module: 'M1' },
 ];
 
@@ -29,7 +33,13 @@ const AdminConsole = () => {
             <span className="tile__module">{tile.module}</span>
             <h2>{tile.title}</h2>
             <p className="muted">{tile.body}</p>
-            <span className="tile__status">Available in a later sprint</span>
+            {tile.to ? (
+              <Link to={tile.to} className="btn btn--primary btn--sm">
+                Open {tile.title.toLowerCase()}
+              </Link>
+            ) : (
+              <span className="tile__status">Available in a later sprint</span>
+            )}
           </section>
         ))}
       </div>
