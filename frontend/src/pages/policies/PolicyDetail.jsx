@@ -38,7 +38,6 @@ const PolicyDetail = () => {
   const [error, setError] = useState(null);
   const [selectedVersionId, setSelectedVersionId] = useState(null);
   const [confirmingArchive, setConfirmingArchive] = useState(false);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [confirmingPublish, setConfirmingPublish] = useState(false);
   const [confirmingRemoval, setConfirmingRemoval] = useState(false);
   const [evidenceWarning, setEvidenceWarning] = useState(null);
@@ -147,7 +146,6 @@ const PolicyDetail = () => {
       const result = await deleteVersion(policyId, versionId, confirmEvidenceLoss);
       setVersionToDelete(null);
       setEvidenceWarning(null);
-      setConfirmingDelete(false);
       setSelectedVersionId(null);
       setNotice(
         `Version ${result.versionNumber} deleted.${
@@ -173,7 +171,6 @@ const PolicyDetail = () => {
     setWorking(false);
   };
 
-  const discardDraft = (versionId) => removeVersion(versionId, false);
 
   const changeStatus = async (status) => {
     setWorking(true);
@@ -466,14 +463,6 @@ const PolicyDetail = () => {
               >
                 Publish version {existingDraft.versionNumber}
               </button>
-              <button
-                type="button"
-                className="btn btn--ghost btn--sm"
-                disabled={working}
-                onClick={() => setConfirmingDelete(true)}
-              >
-                Discard draft
-              </button>
             </>
           ) : (
             !archived && (
@@ -524,30 +513,6 @@ const PolicyDetail = () => {
           </Alert>
         )}
 
-        {confirmingDelete && existingDraft && (
-          <Alert tone="warning" title={`Discard draft version ${existingDraft.versionNumber}?`}>
-            It was never published, so nobody was assigned it and nobody has acknowledged it —
-            deleting it destroys no evidence. This cannot be undone.
-            <p className="confirm-actions">
-              <button
-                type="button"
-                className="btn btn--primary"
-                disabled={working}
-                onClick={() => discardDraft(existingDraft.id)}
-              >
-                {working ? 'Discarding…' : 'Yes, discard it'}
-              </button>
-              <button
-                type="button"
-                className="btn btn--ghost"
-                disabled={working}
-                onClick={() => setConfirmingDelete(false)}
-              >
-                Cancel
-              </button>
-            </p>
-          </Alert>
-        )}
       </section>
 
       {selectedVersionId && (

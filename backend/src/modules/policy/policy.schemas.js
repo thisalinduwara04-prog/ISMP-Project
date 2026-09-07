@@ -20,6 +20,7 @@ const objectId = z
 // report as a 404.
 const policyParams = z.object({ id: objectId }).strict();
 const versionParams = z.object({ id: objectId, vid: objectId }).strict();
+const attachmentParams = z.object({ id: objectId, vid: objectId, aid: objectId }).strict();
 
 // "POL-AUP-001". Uppercased here so the unique index sees one canonical form
 // and "pol-aup-001" cannot become a second policy.
@@ -87,7 +88,10 @@ const listPoliciesQuery = z
 const createVersionSchema = z
   .object({
     title: title.optional(), // defaults to the parent policy's title
-    body: z.string().trim().min(1, 'The policy body cannot be empty.').max(100000),
+    // Optional while drafting: an admin may attach the signed PDF first, or
+    // publish a policy whose whole text is the attachment. The publish route
+    // is what insists a version has something readable in it.
+    body: z.string().trim().max(100000).optional(),
     // Required from v2 onward. The version number is not known until the
     // service has looked at the existing versions, so that conditional rule
     // lives in the service rather than here.
@@ -144,6 +148,7 @@ const acknowledgementsQuery = z
 module.exports = {
   policyParams,
   versionParams,
+  attachmentParams,
   acknowledgeSchema,
   acknowledgementsQuery,
   deletePolicySchema,

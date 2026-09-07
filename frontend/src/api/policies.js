@@ -58,24 +58,21 @@ export const updateVersion = (policyId, versionId, payload) =>
 export const publishVersion = (policyId, versionId) =>
   unwrap(client.post(`/policies/${policyId}/versions/${versionId}/publish`, {}));
 
-// Multipart. Content-Type is explicitly UNSET rather than set to
-// multipart/form-data: the header has to carry the boundary the browser
-// generates, and writing it by hand omits that, so the server would reject
-// every upload with "Boundary not found". Passing undefined clears the shared
-// client's JSON default and lets the browser fill in the whole header.
+// Multipart. No Content-Type is set here deliberately: axios detects the
+// FormData and lets the browser write the full header including the boundary
+// it generated. Setting the header by hand loses the boundary, and the server
+// then has nothing to parse the parts with.
+// Appends. A version may carry several PDFs, so uploading a second one adds it
+// alongside the first rather than replacing it.
 export const uploadAttachment = (policyId, versionId, file) => {
   const form = new FormData();
   form.append('file', file);
 
-  return unwrap(
-    client.post(`/policies/${policyId}/versions/${versionId}/attachment`, form, {
-      headers: { 'Content-Type': undefined },
-    })
-  );
+  return unwrap(client.post(`/policies/${policyId}/versions/${versionId}/attachments`, form));
 };
 
-export const deleteAttachment = (policyId, versionId) =>
-  unwrap(client.delete(`/policies/${policyId}/versions/${versionId}/attachment`));
+export const deleteAttachment = (policyId, versionId, attachmentId) =>
+  unwrap(client.delete(`/policies/${policyId}/versions/${versionId}/attachments/${attachmentId}`));
 
 // Discards an unpublished draft. The API refuses any other status - a version
 // somebody has acknowledged cannot be deleted by anyone.

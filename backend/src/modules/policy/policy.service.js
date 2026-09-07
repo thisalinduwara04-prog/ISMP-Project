@@ -3,10 +3,7 @@ const mongoose = require('mongoose');
 const Policy = require('../../models/Policy');
 const PolicyVersion = require('../../models/PolicyVersion');
 const Acknowledgement = require('../../models/Acknowledgement');
-const { discard } = require('../../middleware/upload');
-const { storedPathFor } = require('./attachment.service');
-
-const discardStoredFile = (fileName) => discard(storedPathFor(fileName));
+const { removeForVersions } = require('./attachment.service');
 const AppError = require('../../utils/AppError');
 const AppAssert = require('../../utils/AppAssert');
 const AppErrorCode = require('../../constants/appErrorCode');
@@ -303,10 +300,8 @@ const destroy = async (policyId, { acknowledgeEvidenceLoss } = {}, actor, req) =
     req,
   });
 
-  // Attached PDFs would otherwise be orphaned on disk forever.
-  await Promise.all(
-    versions.filter((v) => v.attachmentUrl).map((v) => discardStoredFile(v.attachmentUrl))
-  );
+  // Attached PDFs go with the versions that referenced them.
+  await removeForVersions(versionIds);
 
   // The acknowledgements model blocks deletes by design (it is insert-only),
   // so this goes through the driver. That bypass is the whole reason this

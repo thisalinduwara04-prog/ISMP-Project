@@ -12,6 +12,7 @@
     "verify:policies": "node scripts/verify-policy-indexes.js",
     "verify:workflow": "node scripts/verify-policy-workflow.js",
     "demo:policies": "node scripts/demo-policies.js",
+    "clean:orphans": "node scripts/clean-orphan-assignments.js",
     "test": "cross-env NODE_ENV=test BCRYPT_COST=4 jest --runInBand",
     "test:watch": "cross-env NODE_ENV=test BCRYPT_COST=4 jest --runInBand --watch",
     "test:cov": "cross-env NODE_ENV=test BCRYPT_COST=4 jest --runInBand --coverage"

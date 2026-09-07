@@ -20,10 +20,7 @@ const {
   DEFAULT_POLICY_DUE_IN_DAYS,
 } = require('../../constants/policies');
 const { isAdmin, toVersionSummary, notFound } = require('./policy.service');
-const { publicAttachment, storedPathFor } = require('./attachment.service');
-const { discard } = require('../../middleware/upload');
-
-const discardStoredFile = (fileName) => discard(storedPathFor(fileName));
+const attachmentService = require('./attachment.service');
 
 // Version authoring (T3) and publication (T4).
 //
@@ -36,20 +33,26 @@ const isDuplicateKey = (error) => !!error && error.code === 11000;
 
 const dedupe = (values) => [...new Set(values || [])];
 
-const toVersionDetail = (version) => ({
+const toVersionDetail = (version, attachments = []) => ({
   ...toVersionSummary(version),
   policyId: version.policyId.toString(),
   title: version.title,
   body: version.body,
   changeNote: version.changeNote,
-  // The download PATH, never the stored file name - see attachment.service.
-  ...publicAttachment(version),
+  // Metadata for every attached PDF, each with the API path that serves it.
+  // Never the bytes - see attachment.service.
+  attachments,
   targetRoles: version.targetRoles,
   targetDepartments: version.targetDepartments,
   authoredBy: version.authoredBy,
   publishedBy: version.publishedBy,
   createdAt: version.createdAt,
 });
+
+// A version is rarely useful without knowing which files hang off it, so every
+// read path goes through this rather than remembering to fetch them.
+const withAttachments = async (version) =>
+  toVersionDetail(version, await attachmentService.listForVersion(version.policyId, version._id));
 
 const loadPolicy = async (policyId) => {
   const policy = await Policy.findById(policyId);
@@ -67,17 +70,12 @@ const loadVersion = async (policyId, versionId) => {
   return version;
 };
 
-// A change note is what tells a reader being asked to re-acknowledge what
-// actually changed. There is nothing to describe for v1, so it is required
-// from v2 onward - enforced here, and again by the model as a backstop.
-const assertChangeNote = (versionNumber, changeNote) =>
-  AppAssert(
-    versionNumber < 2 || (changeNote && changeNote.trim().length > 0),
-    BAD_REQUEST,
-    'A change note is required from version 2 onward: staff being asked to re-acknowledge need to know what changed.',
-    AppErrorCode.VALIDATION_ERROR,
-    [{ field: 'changeNote', issue: 'required from version 2' }]
-  );
+// NOTE: the change note is no longer required from version 2 onward, at the
+// project owner's request - the field has been removed from the authoring
+// screen. `changeNote` remains on the schema and is still displayed to staff
+// when a version carries one, so nothing already recorded is lost. See
+// docs/traceability-m2.md: this relaxes UC-08 and US-011, which both describe
+// publishing a new version WITH a change note explaining what changed.
 
 // --- T3: draft authoring ----------------------------------------------------
 
@@ -122,7 +120,6 @@ const createDraft = async (policyId, payload, actor) => {
       .select('versionNumber');
 
     const versionNumber = latest ? latest.versionNumber + 1 : 1;
-    assertChangeNote(versionNumber, payload.changeNote);
 
     try {
       const version = await PolicyVersion.create({
@@ -138,7 +135,7 @@ const createDraft = async (policyId, payload, actor) => {
         authoredBy: actor._id,
       });
 
-      return toVersionDetail(version);
+      return withAttachments(version);
     } catch (error) {
       if (!isDuplicateKey(error) || attempt >= MAX_VERSION_NUMBER_ATTEMPTS) throw error;
     }
@@ -157,18 +154,13 @@ const updateDraft = async (policyId, versionId, payload) => {
     AppErrorCode.DUPLICATE_RESOURCE
   );
 
-  assertChangeNote(
-    version.versionNumber,
-    'changeNote' in payload ? payload.changeNote : version.changeNote
-  );
-
   if (payload.targetRoles) payload.targetRoles = dedupe(payload.targetRoles);
   if (payload.targetDepartments) payload.targetDepartments = dedupe(payload.targetDepartments);
 
   Object.assign(version, payload);
   await version.save();
 
-  return toVersionDetail(version);
+  return withAttachments(version);
 };
 
 // Reading one version. Audience-checked: a user outside the target audience
@@ -178,7 +170,7 @@ const updateDraft = async (policyId, versionId, payload) => {
 const getVersion = async (policyId, versionId, user, req) => {
   const version = await loadVersion(policyId, versionId);
 
-  if (isAdmin(user)) return toVersionDetail(version);
+  if (isAdmin(user)) return withAttachments(version);
 
   // Refused reads are audited, not merely refused. A burst of these from one
   // account is what someone probing for documents they should not see looks
@@ -226,7 +218,7 @@ const getVersion = async (policyId, versionId, user, req) => {
     req,
   });
 
-  return toVersionDetail(version);
+  return withAttachments(version);
 };
 
 // Deleting one version.
@@ -283,9 +275,9 @@ const deleteVersion = async (policyId, versionId, { acknowledgeEvidenceLoss } = 
     req,
   });
 
-  // The attached file would otherwise be orphaned on disk with nothing
-  // referencing it.
-  if (version.attachmentUrl) await discardStoredFile(version.attachmentUrl);
+  // The stored PDF goes with the version rather than lingering in the
+  // database with nothing pointing at it.
+  await attachmentService.removeForVersions([version._id]);
 
   if (wasPublished) {
     // Insert-only at the model layer, so this goes through the driver - the
@@ -343,7 +335,19 @@ const publish = async (policyId, versionId, { effectiveFrom } = {}, actor, req) 
     AppErrorCode.DUPLICATE_RESOURCE
   );
 
-  assertChangeNote(draft.versionNumber, draft.changeNote);
+  // Something has to be readable. A draft may legitimately be empty while it
+  // is being written, but publishing assigns it to staff and asks them to
+  // confirm they have read it - so at this point there must be body text, at
+  // least one attached PDF, or both.
+  const attachmentCount = await attachmentService.countForVersion(draft._id);
+
+  AppAssert(
+    (draft.body && draft.body.trim().length > 0) || attachmentCount > 0,
+    BAD_REQUEST,
+    'This version has no content. Write the policy text, attach a PDF, or both, before publishing.',
+    AppErrorCode.VALIDATION_ERROR,
+    [{ field: 'body', issue: 'no body text and no attachment' }]
+  );
 
   const audience = { roles: draft.targetRoles, departments: draft.targetDepartments };
 
@@ -439,7 +443,7 @@ const publish = async (policyId, versionId, { effectiveFrom } = {}, actor, req) 
   });
 
   return {
-    version: toVersionDetail(outcome.version),
+    version: await withAttachments(outcome.version),
     publication: {
       targetCount,
       assignedCount: outcome.fanOutResult.assignedCount,

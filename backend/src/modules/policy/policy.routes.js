@@ -9,6 +9,7 @@ const { CAPABILITIES } = require('../../constants/permissions');
 const {
   policyParams,
   versionParams,
+  attachmentParams,
   createPolicySchema,
   updatePolicySchema,
   listPoliciesQuery,
@@ -136,24 +137,32 @@ router.get(
 // The download is deliberately a normal GET behind `authenticate`, not a
 // signed public URL: the file is streamed only to someone the audience check
 // passes, and there is no static directory that could serve it otherwise.
+// Plural: a version may carry several PDFs - a covering document and an annex,
+// say - and merging them would mean editing a signed file.
 router.post(
-  '/:id/versions/:vid/attachment',
+  '/:id/versions/:vid/attachments',
   requireAuthor,
   validate(versionParams, 'params'),
-  singlePdf('policies'),
+  singlePdf(),
   controller.attachFile
 );
 
 router.get(
-  '/:id/versions/:vid/attachment',
+  '/:id/versions/:vid/attachments',
   validate(versionParams, 'params'),
+  controller.listAttachments
+);
+
+router.get(
+  '/:id/versions/:vid/attachments/:aid',
+  validate(attachmentParams, 'params'),
   controller.downloadAttachment
 );
 
 router.delete(
-  '/:id/versions/:vid/attachment',
+  '/:id/versions/:vid/attachments/:aid',
   requireAuthor,
-  validate(versionParams, 'params'),
+  validate(attachmentParams, 'params'),
   controller.removeAttachment
 );
 
