@@ -10,6 +10,9 @@ import ChangePassword from './pages/ChangePassword';
 import MyTasks from './pages/home/MyTasks';
 import DepartmentDashboard from './pages/home/DepartmentDashboard';
 import AdminConsole from './pages/home/AdminConsole';
+import ReportIncident from './pages/incidents/ReportIncident';
+import IncidentList from './pages/incidents/IncidentList';
+import IncidentDetail from './pages/incidents/IncidentDetail';
 import Forbidden from './pages/Forbidden';
 import NotFound from './pages/NotFound';
 
@@ -30,8 +33,14 @@ const App = () => (
         <Route path="/" element={<RoleHome />} />
         <Route path="/change-password" element={<ChangePassword />} />
 
-        {/* Every employee has these. */}
+        {/* Every employee has these. M5: reporting and viewing your own
+            incidents are granted to every role, and the incident screens
+            themselves branch on INCIDENT_TRIAGE rather than being separate
+            routes - the API returns a different slice to each caller. */}
         <Route path="/my-tasks" element={<MyTasks />} />
+        <Route path="/incidents/new" element={<ReportIncident />} />
+        <Route path="/incidents" element={<IncidentList />} />
+        <Route path="/incidents/:id" element={<IncidentDetail />} />
 
         {/* Capability-gated. The API enforces the same rules regardless. */}
         <Route
