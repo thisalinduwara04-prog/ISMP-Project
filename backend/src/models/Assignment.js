@@ -1,49 +1,47 @@
 const mongoose = require('mongoose');
 
-const ITEM_TYPE = Object.freeze({ POLICY: 'POLICY', TRAINING: 'TRAINING' });
-const ASSIGNMENT_STATUS = Object.freeze({
-  PENDING: 'PENDING',
-  IN_PROGRESS: 'IN_PROGRESS',
-  COMPLETED: 'COMPLETED',
-  OVERDUE: 'OVERDUE',
-  SUPERSEDED: 'SUPERSEDED',
-});
-const ASSIGNMENT_SOURCE = Object.freeze({
-  PUBLICATION: 'PUBLICATION',
-  MANUAL: 'MANUAL',
-  REMEDIAL_SIMULATION: 'REMEDIAL_SIMULATION',
-});
+const { ALL_ROLES, ALL_DEPARTMENTS } = require('../constants/roles');
+const {
+  ASSIGNMENT_ITEM_TYPE,
+  ALL_ASSIGNMENT_ITEM_TYPES,
+  ALL_ASSIGNMENT_STATUSES,
+  ALL_ASSIGNMENT_SOURCES,
+  ASSIGNMENT_STATUS,
+  ASSIGNMENT_SOURCE,
+} = require('../constants/assignments');
 
+// M4 owns this central ledger. M2 and M3 write through the shared assignment
+// service so every screen and report reads the obligations publication wrote.
 const assignmentSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    department: { type: String, required: true, trim: true, uppercase: true },
-    userRole: { type: String, required: true, trim: true, uppercase: true },
-    itemType: { type: String, enum: Object.values(ITEM_TYPE), required: true },
+    department: { type: String, required: true, enum: ALL_DEPARTMENTS },
+    userRole: { type: String, required: true, enum: ALL_ROLES },
+    itemType: { type: String, required: true, enum: ALL_ASSIGNMENT_ITEM_TYPES },
     itemId: { type: mongoose.Schema.Types.ObjectId, required: true },
     itemTitle: { type: String, required: true, trim: true },
     status: {
       type: String,
-      enum: Object.values(ASSIGNMENT_STATUS),
-      default: ASSIGNMENT_STATUS.PENDING,
       required: true,
+      enum: ALL_ASSIGNMENT_STATUSES,
+      default: ASSIGNMENT_STATUS.PENDING,
     },
-    assignedAt: { type: Date, default: Date.now, required: true },
+    assignedAt: { type: Date, required: true, default: Date.now },
     dueDate: { type: Date, required: true },
     startedAt: { type: Date, default: null },
     completedAt: { type: Date, default: null },
     completionRef: { type: mongoose.Schema.Types.ObjectId, default: null },
     progress: {
-      completedItemIds: { type: [String], default: [] },
-      percentComplete: { type: Number, min: 0, max: 100, default: 0 },
+      completedItemIds: { type: [String], default: undefined },
+      percentComplete: { type: Number, default: undefined, min: 0, max: 100 },
     },
     remindersSent: { type: Number, min: 0, default: 0 },
     lastRemindedAt: { type: Date, default: null },
     source: {
       type: String,
-      enum: Object.values(ASSIGNMENT_SOURCE),
-      default: ASSIGNMENT_SOURCE.PUBLICATION,
       required: true,
+      enum: ALL_ASSIGNMENT_SOURCES,
+      default: ASSIGNMENT_SOURCE.PUBLICATION,
     },
     sourceRef: { type: mongoose.Schema.Types.ObjectId, default: null },
   },
@@ -55,15 +53,18 @@ assignmentSchema.index({ department: 1, status: 1, itemType: 1 });
 assignmentSchema.index({ status: 1, dueDate: 1 });
 assignmentSchema.index({ userId: 1, status: 1 });
 
-assignmentSchema.pre('validate', function enforceCompletionFields(next) {
-  if (this.status === ASSIGNMENT_STATUS.COMPLETED && !this.completedAt) {
-    this.completedAt = new Date();
-  }
-  if (this.itemType === ITEM_TYPE.POLICY) this.progress = undefined;
+assignmentSchema.pre('validate', function enforceStateShape(next) {
+  if (this.status === ASSIGNMENT_STATUS.COMPLETED && !this.completedAt) this.completedAt = new Date();
+  if (this.itemType === ASSIGNMENT_ITEM_TYPE.POLICY) this.progress = undefined;
   next();
 });
 
-module.exports = mongoose.model('Assignment', assignmentSchema);
-module.exports.ITEM_TYPE = ITEM_TYPE;
-module.exports.ASSIGNMENT_STATUS = ASSIGNMENT_STATUS;
-module.exports.ASSIGNMENT_SOURCE = ASSIGNMENT_SOURCE;
+const Assignment = mongoose.model('Assignment', assignmentSchema);
+
+// Compatibility aliases for M4 code written before the shared constants file
+// landed. New cross-module code imports constants/assignments directly.
+Assignment.ITEM_TYPE = ASSIGNMENT_ITEM_TYPE;
+Assignment.ASSIGNMENT_STATUS = ASSIGNMENT_STATUS;
+Assignment.ASSIGNMENT_SOURCE = ASSIGNMENT_SOURCE;
+
+module.exports = Assignment;

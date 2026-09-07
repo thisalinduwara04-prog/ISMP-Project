@@ -5,10 +5,10 @@ Group 14 · IE3072 Information Security Policy Management · SLIIT
 Implementation of the platform described in `Spec_Group14_SecurityPolicyPlatform.md`.
 
 **Current state:** M1 (Authentication & RBAC) is complete. The
-`compliance-tracking-reporting` feature branch adds M4 dashboards, reminders,
-notifications and PDF/XLSX reporting. M2, M3 and M5 are not yet built; the seed
-script supplies representative assignment-ledger data so M4 can be demonstrated
-independently until policy and training publication flows are merged.
+`compliance-tracking-reporting` integration branch combines M2 policy management
+with M4 dashboards, reminders, notifications and PDF/XLSX reporting. M3 and M5
+are not yet built; the seed script supplies representative training assignments
+until the training publication flow lands.
 
 ---
 
@@ -24,8 +24,6 @@ Fill in `MONGO_URI` (Atlas or local) and generate the two secrets:
 node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 ```
 
-Then seed and run:
-
 Check the connection before anything else — it diagnoses the common Atlas
 failures instead of leaving you with a generic timeout:
 
@@ -37,6 +35,12 @@ Then seed and run:
 
 ```bash
 cd backend && npm run seed && npm run dev
+```
+
+To add the real M2 policy catalogue and its generated compliance assignments:
+
+```bash
+cd backend && npm run demo:policies
 ```
 
 **Building M2–M5?** Read [docs/ADDING-A-MODULE.md](docs/ADDING-A-MODULE.md) first.

@@ -10,6 +10,7 @@ const AuditLog = require('../../src/models/AuditLog');
 const { signAccessToken } = require('../../src/modules/auth/token.service');
 const { ROLES, DEPARTMENTS } = require('../../src/constants/roles');
 const { clearDashboardCache } = require('../../src/modules/compliance/compliance.service');
+const assignmentService = require('../../src/modules/assignment/assignment.service');
 
 describe('M4 compliance tracking and reporting', () => {
   let mongo;
@@ -67,6 +68,24 @@ describe('M4 compliance tracking and reporting', () => {
     expect(response.status).toBe(200);
     expect(response.body.data.summary).toMatchObject({ total: 2, completed: 1, overdue: 1, compliancePercent: 50 });
     expect(response.body.data.assignments).toHaveLength(2);
+  });
+
+  test('superseded policy completions retain evidence but leave live compliance', async () => {
+    const employee = await createUser();
+    const completionRef = new mongoose.Types.ObjectId();
+    const assignment = await addAssignment(employee, { status: 'COMPLETED' });
+    assignment.completionRef = completionRef;
+    await assignment.save();
+
+    await assignmentService.supersede({ itemType: 'POLICY', itemId: assignment.itemId });
+
+    const stored = await Assignment.findById(assignment._id);
+    expect(stored.status).toBe('SUPERSEDED');
+    expect(stored.completionRef).toEqual(completionRef);
+    expect(stored.completedAt).not.toBeNull();
+
+    const response = await request(app).get('/api/v1/compliance/me').set(auth(employee));
+    expect(response.body.data.summary.total).toBe(0);
   });
 
   test('manager dashboard is forced to their own department', async () => {
