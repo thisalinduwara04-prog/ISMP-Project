@@ -1,3 +1,4 @@
+import MyPolicies from '../../components/MyPolicies';
 import { useAuth } from '../../auth/AuthContext';
 import { DEPARTMENT_LABELS } from '../../constants';
 
@@ -14,11 +15,16 @@ const DepartmentDashboard = () => {
         <p>Compliance overview for your team</p>
       </header>
 
+      {/* A manager has their own policies to read like anyone else. Without
+          this the only route to them was typing the URL, because managers see
+          neither My Tasks nor the admin console. */}
+      <MyPolicies heading="policies to read" />
+
       <section className="card">
         <h2>No compliance data yet</h2>
         <p className="muted">
           Acknowledgement and training-completion rates for your department will appear here once
-          policies and training modules are published.
+          the compliance module lands.
         </p>
       </section>
 

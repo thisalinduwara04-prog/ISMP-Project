@@ -34,6 +34,29 @@
   color: var(--ink-soft);
 }
 
+/* A tile for a module that has landed. It reads as actionable rather than as
+   another "waiting on a later sprint" placeholder. */
+.tile--link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.tile--link:hover {
+  border-color: var(--brand);
+}
+
+.tile--link:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.tile__status--ready {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--brand);
+}
+
 /* --- Auth card ---------------------------------------------------------- */
 
 .auth-card {
@@ -260,4 +283,877 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+/* --- Policy task list (M2, US-013) --------------------------------------- */
+
+.alert--success {
+  background: #edf7f1;
+  border-color: #b9ddc9;
+  color: var(--ok);
+}
+
+.badge {
+  flex-shrink: 0;
+  padding: 0.25rem 0.625rem;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge--danger {
+  background: var(--danger-tint);
+  border-color: var(--danger-line);
+  color: var(--danger);
+}
+
+.badge--warning {
+  background: var(--warning-tint);
+  border-color: var(--warning-line);
+  color: var(--warning);
+}
+
+.badge--ok {
+  background: #edf7f1;
+  border-color: #b9ddc9;
+  color: var(--ok);
+}
+
+.badge--neutral {
+  background: var(--canvas);
+  border-color: var(--line);
+  color: var(--ink-soft);
+}
+
+.task-list {
+  display: grid;
+  gap: 0.625rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.task-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  /* Comfortably above the 44px thumb target for warehouse staff on a phone. */
+  min-height: var(--touch-target);
+  padding: 0.875rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  color: inherit;
+  text-decoration: none;
+}
+
+.task-row:hover {
+  border-color: var(--brand);
+}
+
+.task-row:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* A left edge as well as the badge, so "late" is not carried by colour alone. */
+.task-row--overdue {
+  border-left: 4px solid var(--danger);
+}
+
+.task-row__main {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.task-row__title {
+  font-weight: 600;
+}
+
+.task-row__meta {
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+/* --- Policy reader (UC-10) ----------------------------------------------- */
+
+.page--reader {
+  max-width: 46rem;
+}
+
+.reader {
+  padding-bottom: 0.5rem;
+}
+
+.reader__end {
+  height: 1px;
+}
+
+.reader__attachment {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.875rem;
+}
+
+/* Long-form policy text: a measure of roughly 70 characters and generous
+   leading, because these documents are read end to end rather than scanned. */
+.prose {
+  line-height: 1.7;
+}
+
+.prose h2,
+.prose h3,
+.prose h4 {
+  margin: 1.75rem 0 0.5rem;
+  line-height: 1.3;
+}
+
+.prose h2 {
+  font-size: 1.1875rem;
+}
+
+.prose h3 {
+  font-size: 1.0625rem;
+}
+
+.prose > :first-child {
+  margin-top: 0;
+}
+
+.prose p {
+  margin: 0 0 1rem;
+}
+
+.prose ul,
+.prose ol {
+  margin: 0 0 1rem;
+  padding-left: 1.375rem;
+}
+
+.prose li {
+  margin-bottom: 0.375rem;
+}
+
+.prose code {
+  padding: 0.0625rem 0.3125rem;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 0.875em;
+}
+
+/* --- Acknowledgement gate ------------------------------------------------ */
+
+.acknowledge h2 {
+  margin: 0 0 0.875rem;
+  font-size: 1.0625rem;
+}
+
+.checkbox {
+  display: flex;
+  gap: 0.625rem;
+  align-items: flex-start;
+  min-height: var(--touch-target);
+  padding: 0.5rem 0;
+  cursor: pointer;
+}
+
+.checkbox input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: var(--brand);
+}
+
+.checkbox input:disabled {
+  cursor: not-allowed;
+}
+
+.checkbox input:disabled + span {
+  color: var(--ink-soft);
+}
+
+.checkbox input:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* Why the control is disabled, never a dead button with no explanation. */
+.acknowledge__reason {
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--info-tint);
+  border: 1px solid var(--info-line);
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  color: var(--info);
+}
+
+.acknowledge__footnote {
+  margin: 0.75rem 0 0;
+  font-size: 0.8125rem;
+}
+
+/* On a phone the confirm control sits within thumb reach at the bottom of the
+   screen rather than needing a two-handed stretch (NFR-USE-02). */
+@media (max-width: 30rem) {
+  .task-row {
+    align-items: flex-start;
+  }
+
+  .acknowledge {
+    position: sticky;
+    bottom: 0;
+  }
+}
+
+/* --- Admin policy detail: versions, tabs, evidence tables (T8, T10) ------ */
+
+.checkbox--inline {
+  min-height: auto;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.version-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+/* The row is a container now, not a control: selecting it (which drives the
+   acknowledgement trail) and opening the version are separate actions, and a
+   link nested inside a button would be invalid markup. */
+.version-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0.875rem;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.version-row:hover {
+  border-color: var(--brand);
+}
+
+.version-row--selected {
+  background: var(--brand-tint);
+  border-color: var(--brand);
+}
+
+.version-row__select {
+  display: grid;
+  gap: 0.125rem;
+  flex: 1 1 14rem;
+  min-width: 0;
+  min-height: var(--touch-target);
+  padding: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.version-row__select:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 3px;
+}
+
+.version-row__actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.version-row__title {
+  font-weight: 600;
+}
+
+.version-row__meta {
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.tab {
+  min-height: var(--touch-target);
+  padding: 0.5rem 0.875rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font: inherit;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.tab--active {
+  border-bottom-color: var(--brand);
+  color: var(--brand);
+  font-weight: 600;
+}
+
+.tab:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: -3px;
+}
+
+/* A table is the one thing that legitimately needs horizontal room. It
+   scrolls inside its own container so the PAGE never scrolls sideways. */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.table th,
+.table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+.table th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ink-soft);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table__sub {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.875rem;
+}
+
+.table-actions__pager {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.8125rem;
+}
+
+.confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.875rem 0 0;
+}
+
+/* --- Policy authoring (admin) -------------------------------------------- */
+
+.list-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.field__help {
+  display: block;
+  margin-top: 0.3125rem;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+.field__row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.3125rem;
+}
+
+.field__input--area {
+  min-height: 18rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.field__input--short {
+  max-width: 8rem;
+}
+
+/* Rendered exactly as the employee will see it, using the same component, so
+   the preview cannot drift from the real thing. */
+.editor-preview {
+  min-height: 18rem;
+  padding: 1rem;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.fieldset {
+  margin: 0 0 1rem;
+  padding: 0;
+  border: none;
+}
+
+.fieldset:disabled .choice {
+  opacity: 0.6;
+}
+
+.choice-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.375rem;
+}
+
+.choice {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: 0.375rem 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.choice:hover {
+  border-color: var(--brand);
+}
+
+.choice input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--brand);
+}
+
+.choice input:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* A secondary grouping in a list - "Archived" below the live rows. Set apart
+   by a rule and muted heading rather than by hiding it behind a filter. */
+.list-group {
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+
+.list-group__title {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+/* Sits under a list rather than above it, so a secondary control does not
+   compete with the content for the top of the page. */
+.list-footer {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+/* Read-only key/value pairs, shown when a record is not being edited. */
+.detail-list {
+  display: grid;
+  gap: 0.625rem;
+  margin: 0;
+}
+
+.detail-list dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ink-soft);
+}
+
+.detail-list dd {
+  margin: 0.125rem 0 0;
+}
+
+/* --- Destructive action -------------------------------------------------- */
+
+.btn--danger {
+  background: transparent;
+  border-color: var(--danger-line);
+  color: var(--danger);
+}
+
+.btn--danger:hover:not(:disabled) {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+}
+
+.alert--error .delete-warning {
+  margin: 0.625rem 0 0;
+  padding: 0.5rem 0.625rem;
+  background: #fff;
+  border: 1px solid var(--danger-line);
+  border-radius: var(--radius-sm);
+}
+
+/* --- Formatting toolbar -------------------------------------------------- */
+
+.editor {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.125rem;
+  align-items: center;
+  padding: 0.25rem;
+  background: var(--canvas);
+  border-bottom: 1px solid var(--line);
+}
+
+.toolbar__btn {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0.25rem 0.5rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.toolbar__btn:hover:not(:disabled) {
+  background: var(--surface);
+  border-color: var(--line);
+}
+
+.toolbar__btn:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+}
+
+.toolbar__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.toolbar__btn--bold { font-weight: 800; }
+.toolbar__btn--italic { font-style: italic; }
+.toolbar__btn--underline { text-decoration: underline; }
+
+.toolbar__divider {
+  width: 1px;
+  height: 20px;
+  margin: 0 0.25rem;
+  background: var(--line);
+}
+
+/* The textarea already sits inside the bordered .editor shell. */
+.editor__area {
+  border: none;
+  border-radius: 0;
+}
+
+.editor__area:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+}
+
+/* A confirmation opened from a version row spans the full width of that row
+   rather than squeezing in beside the buttons. */
+.version-row > .alert {
+  flex: 1 1 100%;
+  margin: 0.5rem 0 0;
+}
+
+/* A value the server owns: shown so the admin knows what it will be, but not
+   editable, and visibly distinct from a field they can type into. */
+.field__input--readonly {
+  background: var(--canvas);
+  color: var(--ink-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  cursor: default;
+}
+
+/* Legend on the left, its bulk action on the right. `legend` is display:block
+   inside this wrapper because a bare <legend> does not participate in flex
+   layout consistently across browsers. */
+.fieldset__head {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.fieldset__head legend {
+  display: block;
+  float: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* --- Paragraph alignment ------------------------------------------------- */
+
+.prose .align-center { text-align: center; }
+.prose .align-right  { text-align: right; }
+.prose .align-left   { text-align: left; }
+
+/* The three alignment buttons share a glyph, so the lines are drawn with a
+   gradient to show which edge they line up against - otherwise they would be
+   three identical controls distinguishable only by tooltip. */
+.toolbar__btn--align-left,
+.toolbar__btn--align-center,
+.toolbar__btn--align-right {
+  position: relative;
+  overflow: hidden;
+  color: transparent;
+}
+
+.toolbar__btn--align-left::before,
+.toolbar__btn--align-center::before,
+.toolbar__btn--align-right::before {
+  content: '';
+  position: absolute;
+  inset: 10px 7px;
+  background-image: linear-gradient(var(--ink) 0 0), linear-gradient(var(--ink) 0 0),
+    linear-gradient(var(--ink) 0 0);
+  background-size: 100% 2px, 60% 2px, 100% 2px;
+  background-repeat: no-repeat;
+}
+
+.toolbar__btn--align-left::before {
+  background-position: left top, left center, left bottom;
+}
+
+.toolbar__btn--align-center::before {
+  background-position: center top, center center, center bottom;
+}
+
+.toolbar__btn--align-right::before {
+  background-position: right top, right center, right bottom;
+}
+
+.toolbar__btn--attach {
+  font-weight: 600;
+}
+
+/* A policy whose content is the PDF: embedded so the reader can actually read
+   it before being asked to confirm they have. Tall enough to be usable, and it
+   scrolls internally rather than stretching the page. */
+.reader__attachment--only {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.reader__pdf {
+  width: 100%;
+  height: 70vh;
+  min-height: 24rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--canvas);
+}
+
+@media (max-width: 30rem) {
+  /* An embedded viewer is unusable on a phone; the link opens the device's
+     own PDF app, which is not. */
+  .reader__pdf {
+    height: 50vh;
+    min-height: 16rem;
+  }
+}
+
+/* The signed PDF, sitting under the policy text: together they are the
+   document, so they belong in the same card rather than a panel further down. */
+.attachment {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding-top: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.attachment__current {
+  margin: 0 0 0.625rem;
+  font-size: 0.875rem;
+}
+
+/* Remove and Replace side by side, acting on the file named above them. */
+.attachment__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* Several PDFs may hang off one version, so they are a list rather than a
+   single named file. */
+.attachment__list {
+  display: grid;
+  gap: 0.375rem;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.attachment__item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  align-items: center;
+  padding: 0.375rem 0.625rem;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+}
+
+.attachment__size {
+  margin-right: auto;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.reader__attachment-heading {
+  margin: 1rem 0 0.375rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.reader__attachment-list {
+  margin: 0;
+  padding-left: 1.125rem;
+  font-size: 0.875rem;
+}
+
+.reader__attachment-list li {
+  margin-bottom: 0.25rem;
+}
+
+/* Each embedded viewer gets its own block when a version carries several. */
+.reader__attachment--only .reader__pdf + .reader__pdf {
+  margin-top: 0.75rem;
+}
+
+/* --- Policy list: cards rather than full-width rows ----------------------- */
+
+/* Used ONLY by the policies list. My Tasks and the department dashboard keep
+   the task-row layout, where a single scannable column suits a short to-do
+   list better than a grid. */
+.policy-grid {
+  display: grid;
+  gap: 0.875rem;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.policy-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  height: 100%;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  color: inherit;
+  text-decoration: none;
+}
+
+.policy-card:hover {
+  border-color: var(--brand);
+}
+
+.policy-card:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* A left edge as well as the badge, so "late" is not carried by colour alone. */
+.policy-card--overdue {
+  border-left: 4px solid var(--danger);
+}
+
+.policy-card__head {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.policy-card__code {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+}
+
+.policy-card__title {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.policy-card__meta {
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+/* Pushed to the bottom so cards of differing text length still line their
+   audience up along one edge. */
+.policy-card__audience {
+  margin-top: auto;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.75rem;
+  color: var(--ink-soft);
 }

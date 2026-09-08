@@ -32,8 +32,10 @@ const createApp = () => {
   );
 
   // Feature routers mount here as each slice lands.
-  // eslint-disable-next-line global-require
+  /* eslint-disable global-require */
   app.use(`${API_PREFIX}/auth`, require('./modules/auth/auth.routes'));
+  app.use(`${API_PREFIX}/policies`, require('./modules/policy/policy.routes'));
+  /* eslint-enable global-require */
 
   // Guarded probe routes exist only under NODE_ENV=test. They give the RBAC
   // negative-path suite stable targets to fire a low-privilege token at before

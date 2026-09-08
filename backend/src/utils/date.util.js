@@ -14,4 +14,18 @@ const minutesUntil = (date) => {
 
 const isInPast = (date) => !!date && new Date(date).getTime() <= Date.now();
 
-module.exports = { MINUTE_MS, HOUR_MS, DAY_MS, minutesFromNow, daysFromNow, minutesUntil, isInPast };
+// Explicit base date rather than "from now", because an assignment's due date
+// is measured from the publication instant that every assignment in the same
+// fan-out shares - not from whenever each row happened to be written.
+const addDays = (date, days) => new Date(new Date(date).getTime() + days * DAY_MS);
+
+module.exports = {
+  MINUTE_MS,
+  HOUR_MS,
+  DAY_MS,
+  minutesFromNow,
+  daysFromNow,
+  minutesUntil,
+  isInPast,
+  addDays,
+};
