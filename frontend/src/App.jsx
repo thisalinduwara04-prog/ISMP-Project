@@ -15,6 +15,8 @@ import PolicyNew from './pages/policies/PolicyNew';
 import VersionEditor from './pages/policies/VersionEditor';
 import ModuleList from './pages/training/ModuleList';
 import ModuleBuilder from './pages/training/ModuleBuilder';
+import ModulePlayer from './pages/training/ModulePlayer';
+import QuizAttempt from './pages/training/QuizAttempt';
 import DepartmentDashboard from './pages/home/DepartmentDashboard';
 import AdminConsole from './pages/home/AdminConsole';
 import Forbidden from './pages/Forbidden';
@@ -72,17 +74,15 @@ const App = () => (
           )}
         />
 
-        {/* M3 authoring. Gated on TRAINING_AUTHOR so the screens are not
-            offered to someone who cannot use them — the API refuses them
-            regardless. The employee-facing module player lands with M3-T4. */}
-        <Route
-          path="/training"
-          element={(
-            <RequireCapability capability={CAPABILITIES.TRAINING_AUTHOR}>
-              <ModuleList />
-            </RequireCapability>
-          )}
-        />
+        {/* M3. Not capability-gated: every role holds TRAINING_COMPLETE, and
+            the list decides what to render from what the API returns — an
+            author sees every module, everyone else sees their own. */}
+        <Route path="/training" element={<ModuleList />} />
+        <Route path="/training/modules/:moduleId" element={<ModulePlayer />} />
+        <Route path="/training/attempts/:attemptId" element={<QuizAttempt />} />
+
+        {/* Authoring. Gated so the screens are not offered to someone who
+            cannot use them — the API refuses them regardless. */}
         <Route
           path="/training/modules/new"
           element={(

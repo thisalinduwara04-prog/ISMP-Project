@@ -1,9 +1,10 @@
 import MyPolicies from '../../components/MyPolicies';
+import MyTraining from '../../components/MyTraining';
 import { useAuth } from '../../auth/AuthContext';
 import { DEPARTMENT_LABELS } from '../../constants';
 
-// Landing page for EMPLOYEE (UC-02 step 8). Policies land here with M2;
-// training and the personal compliance percentage arrive with M3 and M4.
+// Landing page for EMPLOYEE (UC-02 step 8). Policies land here with M2,
+// training with M3; the personal compliance percentage arrives with M4.
 const MyTasks = () => {
   const { user, capabilities } = useAuth();
 
@@ -17,6 +18,8 @@ const MyTasks = () => {
       </header>
 
       <MyPolicies heading="policies to read" />
+
+      <MyTraining />
 
       <section className="card">
         <h2>What this account can do</h2>

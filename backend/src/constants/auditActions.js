@@ -47,8 +47,16 @@ const AUDIT_ACTIONS = Object.freeze({
   // changed, because editing a live quiz is the one that needs explaining
   // afterwards.
   TRAINING_MODULE_UPDATED: 'TRAINING_MODULE_UPDATED',
+  // Permanent removal of a module and everything recorded against it. The
+  // audit entry is all that survives, which is exactly why it records the
+  // counts of what went with it.
+  TRAINING_MODULE_DELETED: 'TRAINING_MODULE_DELETED',
   TRAINING_PUBLISHED: 'TRAINING_PUBLISHED',
   QUIZ_SUBMITTED: 'QUIZ_SUBMITTED',
+  // An admin giving somebody their attempts back. The entry records who
+  // authorised it, and is also what the count is measured from afterwards -
+  // the historical attempts are never deleted (UC-17).
+  QUIZ_ATTEMPTS_RESET: 'QUIZ_ATTEMPTS_RESET',
 });
 
 const AUDIT_OUTCOME = Object.freeze({

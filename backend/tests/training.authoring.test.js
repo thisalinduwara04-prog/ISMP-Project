@@ -2,7 +2,10 @@ const { app, request, TRAINING, makeUser, makeAdmin, as, ROLES, DEPARTMENTS } = 
 
 const TrainingModule = require('../src/models/TrainingModule');
 const QuizAttempt = require('../src/models/QuizAttempt');
+const Assignment = require('../src/models/Assignment');
+const AuditLog = require('../src/models/AuditLog');
 const { MODULE_STATUS } = require('../src/constants/training');
+const { AUDIT_ACTIONS } = require('../src/constants/auditActions');
 
 // M3-T2. Authoring a module: the correctness rules the API refuses to bend, and
 // the identity guarantee that makes reordering safe.
@@ -324,6 +327,74 @@ describe('Training module authoring (M3-T2)', () => {
     });
   });
 
+  describe('deleting a module', () => {
+    it('discards a draft without ceremony', async () => {
+      const { module: created } = (await create()).body.data;
+
+      const response = await request(app)
+        .delete(`${TRAINING}/modules/${created.id}`)
+        .set(as(admin))
+        .send({});
+
+      expect(response.status).toBe(200);
+      expect(response.body.data).toMatchObject({ deleted: true, attemptsDestroyed: 0 });
+      await expect(TrainingModule.countDocuments({})).resolves.toBe(0);
+    });
+
+    it('refuses to destroy quiz attempts unless the loss is confirmed', async () => {
+      const employee = await makeUser({ role: ROLES.EMPLOYEE, department: DEPARTMENTS.WAREHOUSE });
+      const { module: created } = (await create()).body.data;
+      await request(app).post(`${TRAINING}/modules/${created.id}/publish`).set(as(admin)).send({});
+
+      await QuizAttempt.create({
+        userId: employee._id,
+        moduleId: created.id,
+        attemptNumber: 1,
+        passMarkAtAttempt: 70,
+      });
+
+      const refused = await request(app)
+        .delete(`${TRAINING}/modules/${created.id}`)
+        .set(as(admin))
+        .send({});
+
+      expect(refused.status).toBe(409);
+      expect(refused.body.error.message).toMatch(/1 quiz attempt/i);
+      await expect(TrainingModule.countDocuments({})).resolves.toBe(1);
+
+      const confirmed = await request(app)
+        .delete(`${TRAINING}/modules/${created.id}`)
+        .set(as(admin))
+        .send({ acknowledgeEvidenceLoss: true });
+
+      expect(confirmed.body.data).toMatchObject({ deleted: true, attemptsDestroyed: 1 });
+      await expect(QuizAttempt.countDocuments({})).resolves.toBe(0);
+    });
+
+    it('removes the ledger rows so nobody is left with an unopenable task', async () => {
+      await makeUser({ role: ROLES.EMPLOYEE, department: DEPARTMENTS.WAREHOUSE });
+      const { module: created } = (await create()).body.data;
+      await request(app).post(`${TRAINING}/modules/${created.id}/publish`).set(as(admin)).send({});
+
+      // Two: the employee, and the admin themselves - this module targets
+      // everyone, and an admin is a member of staff like anybody else.
+      await expect(Assignment.countDocuments({})).resolves.toBe(2);
+
+      await request(app).delete(`${TRAINING}/modules/${created.id}`).set(as(admin)).send({});
+
+      await expect(Assignment.countDocuments({})).resolves.toBe(0);
+    });
+
+    it('records the deletion, which is all that survives it', async () => {
+      const { module: created } = (await create()).body.data;
+
+      await request(app).delete(`${TRAINING}/modules/${created.id}`).set(as(admin)).send({});
+
+      const entry = await AuditLog.findOne({ action: AUDIT_ACTIONS.TRAINING_MODULE_DELETED });
+      expect(entry.metadata).toMatchObject({ code: created.code, attemptsDestroyed: 0 });
+    });
+  });
+
   describe('authorisation (NFR-SEC-03)', () => {
     it('refuses an EMPLOYEE token on every authoring route', async () => {
       const employee = await makeUser();
@@ -333,6 +404,7 @@ describe('Training module authoring (M3-T2)', () => {
         request(app).post(`${TRAINING}/modules`).set(as(employee)).send(draft()),
         request(app).patch(`${TRAINING}/modules/${created.id}`).set(as(employee)).send({ title: 'Mine now' }),
         request(app).post(`${TRAINING}/modules/${created.id}/publish`).set(as(employee)).send({}),
+        request(app).delete(`${TRAINING}/modules/${created.id}`).set(as(employee)).send({}),
       ]);
 
       responses.forEach((response) => expect(response.status).toBe(403));

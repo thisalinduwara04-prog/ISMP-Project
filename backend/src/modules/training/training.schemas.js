@@ -35,7 +35,20 @@ const moduleCode = z
     message: 'Use letters, digits and hyphens only, e.g. TRN-EML-001.',
   });
 
+// The MODULE's title, which is what staff see on their task list, so it has to
+// be long enough to identify the thing.
 const title = z.string().trim().min(3, 'A title is required.').max(200, 'Title is too long.');
+
+// A content item's title is a section heading inside a module, not an identifier
+// anybody navigates by, so "MS" is a perfectly reasonable one. It needs to be
+// present, and nothing more - reusing the module rule here demanded three
+// characters and then reported the failure as "a title is required", which was
+// wrong about both the rule and the reason.
+const itemTitle = z
+  .string()
+  .trim()
+  .min(1, 'Give this section a title.')
+  .max(200, 'Title is too long.');
 
 // --- Content items ----------------------------------------------------------
 //
@@ -51,7 +64,7 @@ const contentItemInput = z
   .object({
     itemId: z.string().trim().min(1).max(40).optional(),
     type: z.enum(ALL_CONTENT_ITEM_TYPES),
-    title,
+    title: itemTitle,
     body: z.string().trim().max(20000, 'That content item is too long.').optional(),
     mediaUrl: z.string().trim().max(2000).optional(),
     durationSeconds: z.coerce.number().int().min(0).max(86400).nullable().optional(),
@@ -156,9 +169,66 @@ const updateModuleSchema = createModuleSchema
 // arguments: what is published is what was authored.
 const publishModuleSchema = z.object({}).strict();
 
+// Deleting a module destroys the quiz attempts recorded against it - the proof
+// that named staff sat and passed it. The flag has to be sent deliberately;
+// the service refuses without it whenever there is evidence to lose. Shaped
+// exactly like the policy equivalent.
+const deleteModuleSchema = z
+  .object({ acknowledgeEvidenceLoss: z.boolean().optional() })
+  .strict();
+
+// --- T4: progress -----------------------------------------------------------
+
+const attemptParams = z.object({ aid: objectId }).strict();
+
+// A nanoid, checked against the module's own items in the service. Only the
+// item is accepted: `percentComplete` is computed server-side from the items
+// actually completed, so a client cannot post its way to an unlocked quiz.
+const progressSchema = z.object({ itemId: z.string().trim().min(1).max(40) }).strict();
+
+// --- T5: attempts -----------------------------------------------------------
+
+// Starting an attempt takes no arguments. The attempt number, the question
+// order, the pass mark snapshot and the clock are all set by the server.
+const startAttemptSchema = z.object({}).strict();
+
+// Answers in progress. Nothing else is accepted - no score, no timing, no
+// "I think this was right". Grading happens once, at submission, on the server.
+const saveAnswersSchema = z
+  .object({
+    responses: z
+      .array(
+        z
+          .object({
+            questionId: z.string().trim().min(1).max(40),
+            // Empty means "cleared" - a learner unticking their answer.
+            selectedOptionIds: z.array(z.string().trim().min(1).max(40)).max(6),
+          })
+          .strict()
+      )
+      .max(MAX_QUIZ_QUESTIONS),
+  })
+  .strict();
+
+const submitAttemptSchema = z.object({}).strict();
+
+// --- T6: admin reset --------------------------------------------------------
+
+// Names the person whose attempts are being given back. Deliberately explicit
+// rather than inferred from anything: this is an admin acting on somebody
+// else's record, and the audit entry has to say whose (UC-17).
+const resetAttemptsSchema = z.object({ userId: objectId }).strict();
+
 module.exports = {
   moduleParams,
+  attemptParams,
   createModuleSchema,
   updateModuleSchema,
   publishModuleSchema,
+  deleteModuleSchema,
+  progressSchema,
+  startAttemptSchema,
+  saveAnswersSchema,
+  submitAttemptSchema,
+  resetAttemptsSchema,
 };

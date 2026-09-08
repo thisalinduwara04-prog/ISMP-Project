@@ -14,6 +14,8 @@
 //
 // Below the projections: module authoring (T2) and publication (T3).
 
+const mongoose = require('mongoose');
+
 const TrainingModule = require('../../models/TrainingModule');
 const QuizAttempt = require('../../models/QuizAttempt');
 const User = require('../../models/User');
@@ -22,18 +24,24 @@ const AppAssert = require('../../utils/AppAssert');
 const AppErrorCode = require('../../constants/appErrorCode');
 const audit = require('../audit/audit.service');
 const assignmentService = require('../assignment/assignment.service');
+const attemptService = require('./attempt.service');
 const { nanoid } = require('../../utils/nanoid');
 const { withTransaction } = require('../../utils/withTransaction');
 const { buildAudienceFilter, matchesAudience, audienceUserFilter } = require('../../utils/audience');
 const { BAD_REQUEST, NOT_FOUND, CONFLICT, FORBIDDEN } = require('../../constants/http');
 const { ROLES } = require('../../constants/roles');
 const { CATEGORY_ABBREVIATION } = require('../../constants/policies');
-const { ASSIGNMENT_ITEM_TYPE, ASSIGNMENT_SOURCE } = require('../../constants/assignments');
+const {
+  ASSIGNMENT_ITEM_TYPE,
+  ASSIGNMENT_SOURCE,
+  ASSIGNMENT_STATUS,
+} = require('../../constants/assignments');
 const { AUDIT_ACTIONS, AUDIT_ENTITY_TYPE, AUDIT_OUTCOME } = require('../../constants/auditActions');
 const {
   MODULE_STATUS,
   MARKDOWN_CONTENT_TYPES,
   MEDIA_CONTENT_TYPES,
+  TERMINAL_ATTEMPT_STATUSES,
 } = require('../../constants/training');
 
 const toPlain = (module) =>
@@ -369,6 +377,66 @@ const updateModule = async (moduleId, payload, actor, req) => {
   return { module: toAdminView(module), warnings };
 };
 
+// Permanent deletion of a module and everything recorded against it.
+//
+// This is the one operation in M3 that destroys evidence, and it does so
+// deliberately: the quiz attempts sat against the module go with it. Spec 7.18
+// keeps compliance evidence indefinitely, so this exists for withdrawing
+// something that should never have been published - a test, a mistake - not for
+// retiring a module people have completed. Archiving is the way to take a live
+// module out of circulation while keeping the record.
+//
+// Two things make it defensible, both taken from the policy equivalent: the
+// append-only audit entry survives the deletion and records how much evidence
+// went with it, and the caller has to confirm that loss explicitly, which turns
+// "delete this" into a decision that cannot be made by accident from a stale
+// screen.
+const destroy = async (moduleId, { acknowledgeEvidenceLoss } = {}, actor, req) => {
+  const module = await loadModule(moduleId);
+
+  const attemptCount = await QuizAttempt.countDocuments({ moduleId: module._id });
+
+  AppAssert(
+    attemptCount === 0 || acknowledgeEvidenceLoss === true,
+    CONFLICT,
+    `This module holds ${attemptCount} quiz attempt${attemptCount === 1 ? '' : 's'} — the record of who sat it and what they scored. Deleting destroys that permanently and cannot be undone. To delete anyway, confirm the evidence loss explicitly.`,
+    AppErrorCode.VALIDATION_ERROR,
+    [{ field: 'acknowledgeEvidenceLoss', issue: `${attemptCount} attempts would be destroyed` }]
+  );
+
+  // Written BEFORE the deletion, so the record of it exists even if what
+  // follows fails halfway through.
+  await audit.recordForUser(actor, {
+    action: AUDIT_ACTIONS.TRAINING_MODULE_DELETED,
+    entityType: AUDIT_ENTITY_TYPE.TRAINING_MODULE,
+    entityId: module._id,
+    metadata: {
+      code: module.code,
+      title: module.title,
+      status: module.status,
+      contentItemCount: module.contentItems.length,
+      questionCount: module.quiz.questions.length,
+      attemptsDestroyed: attemptCount,
+    },
+    req,
+  });
+
+  // Ledger rows pointing at a module that no longer exists would surface on
+  // every dashboard as an unresolvable task. Through the service, as ever.
+  await assignmentService.removeForItems({
+    itemType: ASSIGNMENT_ITEM_TYPE.TRAINING,
+    itemIds: [module._id],
+  });
+
+  // The model refuses to delete a graded attempt by design, so this goes
+  // through the driver - that bypass being exactly why the guard above exists.
+  await mongoose.connection.collection('quizattempts').deleteMany({ moduleId: module._id });
+
+  await TrainingModule.deleteOne({ _id: module._id });
+
+  return { deleted: true, code: module.code, attemptsDestroyed: attemptCount };
+};
+
 // --- Reads ------------------------------------------------------------------
 
 // Admins see every module, drafts included. Everyone else sees only PUBLISHED
@@ -385,7 +453,115 @@ const listModules = async (user) => {
     ...buildAudienceFilter(user),
   }).sort({ code: 1 });
 
-  return modules.map((module) => toModuleSummary(module));
+  if (modules.length === 0) return [];
+
+  // One ledger query for the whole list rather than one per row.
+  const assignments = await assignmentService.findByUser(user._id, {
+    itemType: ASSIGNMENT_ITEM_TYPE.TRAINING,
+    itemIds: modules.map((module) => module._id),
+  });
+  const assignmentByItem = new Map(assignments.map((a) => [a.itemId.toString(), a]));
+
+  const rows = await Promise.all(
+    modules.map(async (module) => ({
+      ...toModuleSummary(module),
+      task: toTaskState(
+        module,
+        assignmentByItem.get(module._id.toString()) || null,
+        await attemptService.quizState(user._id, module)
+      ),
+    }))
+  );
+
+  // Unfinished first, then by due date. Somebody with three modules outstanding
+  // should not have to hunt for the one that is already late (US-026).
+  return rows.sort((a, b) => {
+    const rank = (row) => (row.task.completedAt ? 2 : row.task.status === 'OVERDUE' ? 0 : 1);
+    if (rank(a) !== rank(b)) return rank(a) - rank(b);
+    if (a.task.dueDate && b.task.dueDate) return new Date(a.task.dueDate) - new Date(b.task.dueDate);
+    return a.code.localeCompare(b.code);
+  });
+};
+
+// Refused reads are audited, not merely refused: a burst of them from one
+// account is what probing for material you should not see looks like
+// (NFR-SEC-06). Mirrors version.service.getVersion.
+const denyLearnerView = async (module, user, reason, req) => {
+  await audit.recordForUser(user, {
+    action: AUDIT_ACTIONS.RBAC_SCOPE_VIEW_DENIED,
+    outcome: AUDIT_OUTCOME.DENIED,
+    entityType: AUDIT_ENTITY_TYPE.TRAINING_MODULE,
+    entityId: module._id,
+    metadata: {
+      reason,
+      code: module.code,
+      userRole: user.role,
+      userDepartment: user.department,
+      targetRoles: module.targetRoles,
+      targetDepartments: module.targetDepartments,
+    },
+    req,
+  });
+
+  return new AppError(
+    FORBIDDEN,
+    'This training module is not assigned to your role or department.',
+    AppErrorCode.SCOPE_VIOLATION
+  );
+};
+
+// The gate on every employee-facing path in this module: reading it, marking
+// progress, and starting a quiz all pass through here first. 403, deliberately,
+// not a 404 that pretends the module does not exist (NFR-SEC-03).
+const assertLearnerAccess = async (module, user, req) => {
+  if (module.status !== MODULE_STATUS.PUBLISHED) {
+    throw await denyLearnerView(module, user, 'NOT_PUBLISHED', req);
+  }
+  if (!matchesAudience(module, user)) {
+    throw await denyLearnerView(module, user, 'OUTSIDE_AUDIENCE', req);
+  }
+};
+
+// This learner's own state for one module: where they are in the content, and
+// where they are with the quiz. Derived from the assignments ledger through
+// M4's service rather than from the training collections, so the employee's
+// screen and the manager's dashboard can never disagree.
+const toTaskState = (module, assignment, quiz) => {
+  const totalItems = module.contentItems.length;
+  const completedItemIds = assignment?.progress?.completedItemIds || [];
+  // Counted against the items that still EXIST: an admin removing an item must
+  // not leave somebody stuck at 5 of 4, nor jump them to complete.
+  const liveIds = new Set(module.contentItems.map((item) => item.itemId));
+  const completed = completedItemIds.filter((itemId) => liveIds.has(itemId));
+
+  const percentComplete =
+    totalItems === 0 ? 0 : Math.min(100, Math.round((completed.length / totalItems) * 100));
+
+  return {
+    assigned: !!assignment,
+    status: assignment ? assignment.status : 'NOT_ASSIGNED',
+    dueDate: assignment ? assignment.dueDate : null,
+    completedAt: assignment ? assignment.completedAt : null,
+    completedItemIds: completed,
+    itemsCompleted: completed.length,
+    itemsTotal: totalItems,
+    percentComplete,
+    // The quiz opens only when the content is finished (UC-15 step 6). The API
+    // refuses an early attempt whatever this says; it is here so the screen can
+    // explain the lock rather than present a button that fails.
+    quizUnlocked: totalItems > 0 && completed.length >= totalItems,
+    itemsRemaining: Math.max(0, totalItems - completed.length),
+    quiz,
+  };
+};
+
+const findAssignment = async (userId, moduleId) => {
+  const [assignment] = await assignmentService.findByUser(userId, {
+    itemType: ASSIGNMENT_ITEM_TYPE.TRAINING,
+    itemIds: [moduleId],
+  });
+
+  return assignment || null;
 };
 
 // One module. The ONE place `toAdminView` reaches a response body outside the
@@ -395,39 +571,225 @@ const listModules = async (user) => {
 const getModule = async (moduleId, user, req) => {
   const module = await loadModule(moduleId);
 
-  if (isAdmin(user)) return toAdminView(module);
+  if (isAdmin(user)) return { module: toAdminView(module) };
 
-  // Refused reads are audited, not merely refused: a burst of them from one
-  // account is what probing for material you should not see looks like
-  // (NFR-SEC-06). Mirrors version.service.getVersion.
-  const denyView = async (reason) => {
-    await audit.recordForUser(user, {
-      action: AUDIT_ACTIONS.RBAC_SCOPE_VIEW_DENIED,
-      outcome: AUDIT_OUTCOME.DENIED,
-      entityType: AUDIT_ENTITY_TYPE.TRAINING_MODULE,
-      entityId: module._id,
-      metadata: {
-        reason,
-        code: module.code,
-        userRole: user.role,
-        userDepartment: user.department,
-        targetRoles: module.targetRoles,
-        targetDepartments: module.targetDepartments,
-      },
-      req,
+  await assertLearnerAccess(module, user, req);
+
+  const assignment = await findAssignment(user._id, module._id);
+  const quiz = await attemptService.quizState(user._id, module);
+
+  return { module: toLearnerView(module), task: toTaskState(module, assignment, quiz) };
+};
+
+// --- T4: working through the content ---------------------------------------
+
+// Marking one item complete. The itemId is checked against the module rather
+// than trusted, so a client cannot reach 100% by posting four ids of its own
+// invention and unlocking the quiz early.
+const markItemComplete = async (moduleId, itemId, user, req) => {
+  const module = await loadModule(moduleId);
+  await assertLearnerAccess(module, user, req);
+
+  const item = module.contentItems.find((entry) => entry.itemId === itemId);
+
+  AppAssert(
+    item,
+    NOT_FOUND,
+    'That content item is not part of this module.',
+    AppErrorCode.NOT_FOUND,
+    [{ field: 'itemId', issue: 'unknown' }]
+  );
+
+  // Through the assignment service: the ledger belongs to M4 (NFR-MNT-01).
+  // Idempotent there, so a double tap adds one entry, not two.
+  await assignmentService.updateProgress({
+    userId: user._id,
+    moduleId: module._id,
+    completedItemId: itemId,
+    totalItems: module.contentItems.length,
+  });
+
+  const assignment = await findAssignment(user._id, module._id);
+  const quiz = await attemptService.quizState(user._id, module);
+
+  return { task: toTaskState(module, assignment, quiz) };
+};
+
+// --- T5 / T6: the attempt routes -------------------------------------------
+//
+// Thin: each one resolves the module and the assignment, then hands over to
+// attempt.service, which owns every rule about grading, timing and limits.
+
+const startAttempt = async (moduleId, user, req) => {
+  const module = await loadModule(moduleId);
+  await assertLearnerAccess(module, user, req);
+
+  const assignment = await findAssignment(user._id, module._id);
+
+  AppAssert(
+    assignment,
+    FORBIDDEN,
+    'This training module has not been assigned to you.',
+    AppErrorCode.SCOPE_VIOLATION
+  );
+
+  return attemptService.startAttempt(module, assignment, user, req);
+};
+
+const saveAttempt = async (attemptId, responses, user, req) => {
+  const attempt = await attemptService.loadOwnedAttempt(attemptId, user);
+  const module = await loadModule(attempt.moduleId);
+
+  return { attempt: await attemptService.saveAnswers(module, attempt, responses, user, req) };
+};
+
+const submitAttempt = async (attemptId, user, req) => {
+  const attempt = await attemptService.loadOwnedAttempt(attemptId, user);
+  const module = await loadModule(attempt.moduleId);
+
+  return attemptService.submitAttempt(module, attempt, user, req);
+};
+
+const getAttempt = async (attemptId, user, req) => {
+  const attempt = await QuizAttempt.findById(attemptId);
+
+  AppAssert(attempt, NOT_FOUND, 'Quiz attempt not found.', AppErrorCode.NOT_FOUND);
+
+  const module = await loadModule(attempt.moduleId);
+
+  return attemptService.getAttempt(module, attempt, user, req);
+};
+
+// Admin only, and not in the section 8.4 table: UC-17 and US-024 require a way
+// back for somebody who has used every attempt, and there is no other route
+// that could grant it.
+const resetAttempts = async (moduleId, userId, actor, req) => {
+  const module = await loadModule(moduleId);
+
+  const targetUser = await User.findById(userId);
+  AppAssert(targetUser, NOT_FOUND, 'User not found.', AppErrorCode.NOT_FOUND);
+
+  return attemptService.resetAttempts(module, targetUser, actor, req);
+};
+
+// --- Who has completed this module ------------------------------------------
+//
+// The training counterpart of the acknowledgement trail (UC-12). Same shape and
+// same principle: BOTH halves of the question - who finished and who has not -
+// come back in one response, so the summary line can never disagree with the
+// tables under it.
+//
+// Completion here is a passing quiz attempt, not a click, so each row carries
+// the score it was earned with. There is no question or option anywhere in this
+// payload: an admin looking at who passed has no need of the answer key, and
+// leaving it out means one less route AD-3 has to hold on (AD-3).
+const listCompletions = async (moduleId, actor, req) => {
+  const module = await loadModule(moduleId);
+
+  const assignments = await assignmentService.findByItem({
+    itemType: ASSIGNMENT_ITEM_TYPE.TRAINING,
+    itemId: module._id,
+    withUser: true,
+  });
+
+  // One query for every attempt on this module, rather than one per person.
+  const attempts = await QuizAttempt.find({
+    moduleId: module._id,
+    status: { $in: TERMINAL_ATTEMPT_STATUSES },
+  }).sort({ scorePercent: -1 });
+
+  // The BEST attempt per user, because that is what counts for compliance
+  // (US-024) - the descending sort above makes the first one seen the best.
+  const bestByUser = new Map();
+  const attemptCounts = new Map();
+
+  attempts.forEach((attempt) => {
+    const key = attempt.userId.toString();
+    if (!bestByUser.has(key)) bestByUser.set(key, attempt);
+    attemptCounts.set(key, (attemptCounts.get(key) || 0) + 1);
+  });
+
+  const now = Date.now();
+  const completed = [];
+  const outstanding = [];
+
+  assignments.forEach((assignment) => {
+    const userId = assignment.userId ? assignment.userId._id.toString() : null;
+    const best = userId ? bestByUser.get(userId) : null;
+
+    const row = {
+      userId,
+      fullName: assignment.userId ? assignment.userId.fullName : '(account removed)',
+      employeeId: assignment.userId ? assignment.userId.employeeId : null,
+      department: assignment.department,
+      attemptsUsed: userId ? attemptCounts.get(userId) || 0 : 0,
+      attemptsAllowed: module.quiz.maxAttempts,
+    };
+
+    if (assignment.status === ASSIGNMENT_STATUS.COMPLETED) {
+      completed.push({
+        ...row,
+        completedAt: assignment.completedAt,
+        scorePercent: best ? best.scorePercent : null,
+        attemptNumber: best ? best.attemptNumber : null,
+      });
+      return;
+    }
+
+    outstanding.push({
+      ...row,
+      dueDate: assignment.dueDate,
+      percentComplete: assignment.progress?.percentComplete || 0,
+      // The state that matters to whoever is chasing it: not started, part-way
+      // through the content, at the quiz, or out of attempts.
+      stage:
+        (attemptCounts.get(userId) || 0) >= module.quiz.maxAttempts
+          ? 'ATTEMPTS_EXHAUSTED'
+          : (assignment.progress?.percentComplete || 0) >= 100
+            ? 'QUIZ_OUTSTANDING'
+            : (assignment.progress?.percentComplete || 0) > 0
+              ? 'IN_PROGRESS'
+              : 'NOT_STARTED',
+      bestScorePercent: best ? best.scorePercent : null,
+      isOverdue:
+        assignment.status === ASSIGNMENT_STATUS.OVERDUE ||
+        (assignment.dueDate && new Date(assignment.dueDate).getTime() < now),
     });
+  });
 
-    return new AppError(
-      FORBIDDEN,
-      'This training module is not assigned to your role or department.',
-      AppErrorCode.SCOPE_VIOLATION
-    );
+  // Reading somebody's compliance record is itself an act worth recording.
+  await audit.recordForUser(actor, {
+    action: AUDIT_ACTIONS.COMPLIANCE_AUDIT_VIEWED,
+    entityType: AUDIT_ENTITY_TYPE.TRAINING_MODULE,
+    entityId: module._id,
+    metadata: {
+      code: module.code,
+      completedCount: completed.length,
+      outstandingCount: outstanding.length,
+    },
+    req,
+  });
+
+  const assigned = completed.length + outstanding.length;
+
+  return {
+    module: {
+      id: module._id.toString(),
+      code: module.code,
+      title: module.title,
+      status: module.status,
+      passMark: module.quiz.passMark,
+      publishedAt: module.publishedAt,
+    },
+    summary: {
+      completed: completed.length,
+      outstanding: outstanding.length,
+      assigned,
+      percentComplete: assigned ? Math.round((completed.length / assigned) * 100) : 0,
+    },
+    completed: completed.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)),
+    outstanding: outstanding.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)),
   };
-
-  if (module.status !== MODULE_STATUS.PUBLISHED) throw await denyView('NOT_PUBLISHED');
-  if (!matchesAudience(module, user)) throw await denyView('OUTSIDE_AUDIENCE');
-
-  return toLearnerView(module);
 };
 
 // --- T3: publish and fan out ------------------------------------------------
@@ -571,8 +933,16 @@ module.exports = {
   toModuleSummary,
   createModule,
   updateModule,
+  destroy,
   listModules,
   getModule,
+  listCompletions,
   publishModule,
+  markItemComplete,
+  startAttempt,
+  saveAttempt,
+  submitAttempt,
+  getAttempt,
+  resetAttempts,
   isAdmin,
 };

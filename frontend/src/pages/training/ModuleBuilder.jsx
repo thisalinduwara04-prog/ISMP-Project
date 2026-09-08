@@ -4,7 +4,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Alert from '../../components/Alert';
 import Spinner from '../../components/Spinner';
 import RichTextArea from '../../components/RichTextArea';
-import { fetchModule, createModule, updateModule, publishModule } from '../../api/training';
+import CompletionTrail from './CompletionTrail';
+import {
+  fetchModule,
+  createModule,
+  updateModule,
+  publishModule,
+  deleteModule,
+} from '../../api/training';
 import {
   ROLES,
   ROLE_LABELS,
@@ -193,7 +200,9 @@ const findProblems = (draft) => {
 
   draft.contentItems.forEach((item, index) => {
     const label = item.title.trim() || `Item ${index + 1}`;
-    if (item.title.trim().length < 3) problems.push(`${label}: give it a title.`);
+    // Present is enough for a section heading - "MS" is a real title. Only the
+    // module's own title, which staff pick out of a task list, needs more.
+    if (item.title.trim().length === 0) problems.push(`${label}: give it a title.`);
     if (MARKDOWN_TYPES.includes(item.type) && !item.body.trim()) {
       problems.push(`${label}: write the content.`);
     }
@@ -228,6 +237,77 @@ const findProblems = (draft) => {
   return problems;
 };
 
+// The API reports a failure against its own path - `contentItems.1.title` -
+// which is accurate, zero-indexed, and no help to somebody looking at a form.
+// This turns it into the name of the thing on screen.
+const MODULE_FIELD_LABELS = {
+  title: 'Module title',
+  code: 'Module code',
+  category: 'Category',
+  description: 'Description',
+  dueInDays: 'Days to complete it',
+  estimatedMinutes: 'Estimated minutes',
+  targetRoles: 'Roles',
+  targetDepartments: 'Departments',
+  contentItems: 'Content',
+};
+
+const ITEM_FIELD_LABELS = {
+  title: 'title',
+  body: 'content',
+  mediaUrl: 'link',
+  type: 'type',
+};
+
+const QUESTION_FIELD_LABELS = {
+  text: 'question',
+  options: 'options',
+  type: 'answer type',
+  explanation: 'explanation',
+};
+
+const describeField = (path = '') => {
+  const [head, index, leaf] = path.split('.');
+
+  if (head === 'contentItems' && index !== undefined) {
+    const number = Number(index) + 1;
+    return Number.isNaN(number)
+      ? 'Content'
+      : `Item ${number}${leaf ? ` — ${ITEM_FIELD_LABELS[leaf] || leaf}` : ''}`;
+  }
+
+  if (head === 'quiz') {
+    const parts = path.split('.');
+    if (parts[1] === 'questions' && parts[2] !== undefined) {
+      const number = Number(parts[2]) + 1;
+      const leafName = parts[3];
+      return Number.isNaN(number)
+        ? 'Quiz'
+        : `Question ${number}${leafName ? ` — ${QUESTION_FIELD_LABELS[leafName] || leafName}` : ''}`;
+    }
+    return { passMark: 'Pass mark', maxAttempts: 'Attempts allowed', timeLimitMinutes: 'Time limit' }[
+      parts[1]
+    ] || 'Quiz';
+  }
+
+  return MODULE_FIELD_LABELS[path] || path;
+};
+
+// Which tab and which item the first problem is on, so a rejected save leaves
+// the offending field in front of the admin rather than behind two clicks.
+const locate = (path = '') => {
+  const [head, index] = path.split('.');
+
+  if (head === 'contentItems') {
+    return { tab: 'content', item: Number.isNaN(Number(index)) ? null : Number(index) };
+  }
+  if (head === 'quiz') return { tab: 'quiz', item: null };
+  // The module title sits above the tabs and is always visible; everything
+  // else about the module lives on the settings tab.
+  if (head === 'title') return { tab: null, item: null };
+  return { tab: 'settings', item: null };
+};
+
 const move = (list, from, to) => {
   if (to < 0 || to >= list.length) return list;
   const next = [...list];
@@ -251,6 +331,10 @@ const ModuleBuilder = () => {
   const [notice, setNotice] = useState(null);
   const [warnings, setWarnings] = useState([]);
   const [confirmingPublish, setConfirmingPublish] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  // The second confirmation, reached only when the API has refused the first
+  // because there are quiz attempts that would be destroyed.
+  const [confirmingEvidenceLoss, setConfirmingEvidenceLoss] = useState(false);
 
   const load = useCallback(async () => {
     if (isNew) return;
@@ -404,6 +488,18 @@ const ModuleBuilder = () => {
 
   // --- Save and publish ---
 
+  // A rejected save should leave the offending field on screen. Without this an
+  // admin is told "Item 2 — title" while looking at the quiz tab, and has to go
+  // and find it.
+  const showFirstProblem = (failure) => {
+    const [first] = failure?.details || [];
+    if (!first) return;
+
+    const { tab: target, item } = locate(first.field);
+    if (target) setTab(target);
+    if (item !== null && item !== undefined) setSelected(item);
+  };
+
   const save = async () => {
     setBusy(true);
     setError(null);
@@ -413,10 +509,7 @@ const ModuleBuilder = () => {
     try {
       if (isNew) {
         const data = await createModule(toPayload(draft));
-        navigate(`/training/modules/${data.module.id}/edit`, {
-          replace: true,
-          state: { notice: 'Draft saved. Nobody is assigned it until you publish it.' },
-        });
+        navigate(`/training/modules/${data.module.id}/edit`, { replace: true });
         return;
       }
 
@@ -427,6 +520,7 @@ const ModuleBuilder = () => {
       setNotice('Saved.');
     } catch (saveError) {
       setError(saveError);
+      showFirstProblem(saveError);
     } finally {
       setBusy(false);
     }
@@ -442,24 +536,53 @@ const ModuleBuilder = () => {
       const saveResult = await updateModule(moduleId, toPayload(draft));
       setSaved(saveResult.module);
 
-      const data = await publishModule(moduleId);
+      await publishModule(moduleId);
 
-      navigate('/training', {
-        replace: true,
-        state: {
-          notice: `Published ${data.module.code}. ${data.publication.assignedCount} member${
-            data.publication.assignedCount === 1 ? '' : 's'
-          } of staff assigned${
-            data.publication.alreadyAssignedCount
-              ? `, ${data.publication.alreadyAssignedCount} already had it`
-              : ''
-          }.`,
-        },
-      });
+      // Straight back to the list. The module's status badge is the
+      // confirmation that it went out.
+      navigate('/training', { replace: true });
     } catch (publishError) {
       setError(publishError);
+      showFirstProblem(publishError);
       setConfirmingPublish(false);
     } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    setBusy(true);
+    setError(null);
+
+    try {
+      await deleteModule(moduleId);
+      navigate('/training', { replace: true });
+    } catch (deleteError) {
+      // 409 with a count: the module holds quiz attempts, and the API will not
+      // destroy evidence on an unqualified request. The admin is told exactly
+      // what would be lost and has to say so again.
+      if (deleteError.status === 409) {
+        setError(deleteError);
+        setConfirmingDelete(false);
+        setConfirmingEvidenceLoss(true);
+      } else {
+        setError(deleteError);
+        setConfirmingDelete(false);
+      }
+      setBusy(false);
+    }
+  };
+
+  const removeWithEvidence = async () => {
+    setBusy(true);
+    setError(null);
+
+    try {
+      await deleteModule(moduleId, true);
+      navigate('/training', { replace: true });
+    } catch (deleteError) {
+      setError(deleteError);
+      setConfirmingEvidenceLoss(false);
       setBusy(false);
     }
   };
@@ -508,13 +631,13 @@ const ModuleBuilder = () => {
       ))}
 
       {error && (
-        <Alert title="That did not work">
-          {error.message}
+        <Alert title={error.details?.length ? 'Not saved — a few things to fix' : 'That did not work'}>
+          {error.details?.length ? null : error.message}
           {error.details?.length > 0 && (
             <ul className="alert__list">
               {error.details.map((detail) => (
                 <li key={`${detail.field}-${detail.issue}`}>
-                  {detail.field}: {detail.issue}
+                  <strong>{describeField(detail.field)}</strong>: {detail.issue}
                 </li>
               ))}
             </ul>
@@ -528,6 +651,26 @@ const ModuleBuilder = () => {
           against; results already recorded keep the pass mark they were graded against.
         </Alert>
       )}
+
+      {/* Above the tabs, not inside one. The module's own title is required by
+          the API on the very first save, and while it sat on the settings tab
+          an admin could fill in a content item, press Save, and be told "a
+          title is required" about a field they had never seen. */}
+      <section className="card">
+        <label className="field" htmlFor="m-title">
+          <span className="field__label">Module title</span>
+          <input
+            id="m-title"
+            className="field__input"
+            value={draft.title}
+            placeholder="Phishing awareness"
+            onChange={(event) => patchDraft({ title: event.target.value })}
+          />
+          <small className="field__help">
+            What staff see on their task list. Each content item below has its own title.
+          </small>
+        </label>
+      </section>
 
       <div className="tabs" role="tablist">
         {[
@@ -894,16 +1037,7 @@ const ModuleBuilder = () => {
       {tab === 'settings' && (
         <>
           <section className="card">
-            <label className="field" htmlFor="m-title">
-              <span className="field__label">Title</span>
-              <input
-                id="m-title"
-                className="field__input"
-                value={draft.title}
-                onChange={(event) => patchDraft({ title: event.target.value })}
-              />
-            </label>
-
+            {/* The title lives above the tabs, where it cannot be missed. */}
             <label className="field" htmlFor="m-category">
               <span className="field__label">Category</span>
               <select
@@ -1009,6 +1143,11 @@ const ModuleBuilder = () => {
         </>
       )}
 
+      {/* Who has actually done it, directly above the buttons that change it -
+          so an admin editing a live quiz can see how many people have already
+          been graded against the version they are about to change. */}
+      {!isNew && <CompletionTrail moduleId={moduleId} refreshKey={saved?.updatedAt} />}
+
       <section className="card">
         <div className="confirm-actions">
           <button type="button" className="btn btn--ghost" disabled={busy} onClick={save}>
@@ -1023,6 +1162,20 @@ const ModuleBuilder = () => {
               onClick={() => setConfirmingPublish(true)}
             >
               {isPublished ? 'Publish again…' : 'Publish…'}
+            </button>
+          )}
+
+          {/* Last, and away from the two buttons an admin presses often. The
+              API refuses to destroy quiz attempts without an explicit
+              confirmation, so the first press reports what would be lost. */}
+          {!isNew && (
+            <button
+              type="button"
+              className="btn btn--danger"
+              disabled={busy}
+              onClick={() => setConfirmingDelete(true)}
+            >
+              Delete…
             </button>
           )}
         </div>
@@ -1061,6 +1214,65 @@ const ModuleBuilder = () => {
                 onClick={() => setConfirmingPublish(false)}
               >
                 Cancel
+              </button>
+            </p>
+          </Alert>
+        )}
+
+        {confirmingDelete && (
+          <Alert tone="error" title="Delete this module?">
+            <ul className="alert__list">
+              <li>The content and the quiz are removed permanently. This cannot be undone.</li>
+              <li>
+                Every quiz attempt sat against it goes too — the record of who passed it and what
+                they scored.
+              </li>
+              <li>It disappears from the task list of everybody currently assigned it.</li>
+            </ul>
+            <p className="muted">
+              To take a live module out of circulation while keeping the record, leave it published
+              and stop assigning it rather than deleting it.
+            </p>
+            <p className="confirm-actions">
+              <button type="button" className="btn btn--danger" disabled={busy} onClick={remove}>
+                {busy ? 'Deleting…' : 'Yes, delete it'}
+              </button>
+              <button
+                type="button"
+                className="btn btn--ghost"
+                disabled={busy}
+                onClick={() => setConfirmingDelete(false)}
+              >
+                Cancel
+              </button>
+            </p>
+          </Alert>
+        )}
+
+        {/* Only ever shown because the API refused the first attempt: this
+            module holds results, and the message above says how many. */}
+        {confirmingEvidenceLoss && (
+          <Alert tone="error" title="This module holds quiz results">
+            <p>
+              Deleting it destroys them permanently. An audit entry recording who deleted what, and
+              how much evidence went with it, is kept either way.
+            </p>
+            <p className="confirm-actions">
+              <button
+                type="button"
+                className="btn btn--danger"
+                disabled={busy}
+                onClick={removeWithEvidence}
+              >
+                {busy ? 'Deleting…' : 'Delete it and the results'}
+              </button>
+              <button
+                type="button"
+                className="btn btn--ghost"
+                disabled={busy}
+                onClick={() => setConfirmingEvidenceLoss(false)}
+              >
+                Keep the module
               </button>
             </p>
           </Alert>

@@ -34,3 +34,52 @@ export const updateModule = (moduleId, payload) =>
 // assignment is skipped rather than assigned again.
 export const publishModule = (moduleId) =>
   unwrap(client.post(`/training/modules/${moduleId}/publish`, {}));
+
+// Admin. Who has completed the module and who has not, both halves in one
+// response so the summary and the tables can never disagree. Carries no
+// question or option — an author checking who passed has no need of the key.
+export const fetchCompletions = (moduleId) =>
+  unwrap(client.get(`/training/modules/${moduleId}/completions`));
+
+// Permanent, and destroys every quiz attempt recorded against the module. The
+// API refuses without `acknowledgeEvidenceLoss` whenever there is evidence to
+// lose, so the first call doubles as "tell me what this would destroy".
+export const deleteModule = (moduleId, acknowledgeEvidenceLoss = false) =>
+  unwrap(client.delete(`/training/modules/${moduleId}`, { data: { acknowledgeEvidenceLoss } }));
+
+// --- Working through a module (any role) ------------------------------------
+
+// Marks one content item complete. Sends the item, never a percentage: the
+// server counts what has actually been completed, which is what stops a client
+// from unlocking the quiz by claiming to be finished. Safe to send twice.
+export const markItemComplete = (moduleId, itemId) =>
+  unwrap(client.post(`/training/modules/${moduleId}/progress`, { itemId }));
+
+// --- The quiz ---------------------------------------------------------------
+//
+// Nothing here can determine an answer. The questions arrive without their key,
+// the grading happens on submit, on the server, and the result says only
+// whether each question was right.
+
+// Refused with 403 until every content item is complete, and again once the
+// attempts are used up. Returns the attempt already in progress if there is
+// one, rather than opening a second - which is how a quiz interrupted by an
+// expired session resumes with its clock still running.
+export const startAttempt = (moduleId) =>
+  unwrap(client.post(`/training/modules/${moduleId}/attempts`, {}));
+
+// Answers as they are chosen, so a phone that dies mid-quiz has lost nothing.
+export const saveAnswers = (attemptId, responses) =>
+  unwrap(client.patch(`/training/attempts/${attemptId}`, { responses }));
+
+export const submitAttempt = (attemptId) =>
+  unwrap(client.post(`/training/attempts/${attemptId}/submit`, {}));
+
+// The paper while it is being sat, the result once it has been graded - the
+// server decides which, from the attempt's own status.
+export const fetchAttempt = (attemptId) => unwrap(client.get(`/training/attempts/${attemptId}`));
+
+// Admin. Gives one person their attempts back at one module. The historical
+// attempts are kept; only the count against the limit restarts.
+export const resetAttempts = (moduleId, userId) =>
+  unwrap(client.post(`/training/modules/${moduleId}/attempts/reset`, { userId }));

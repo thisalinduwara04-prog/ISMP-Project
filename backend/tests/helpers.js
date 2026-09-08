@@ -160,6 +160,78 @@ const makeTrainingModule = async (
   });
 };
 
+// A module built for GRADING tests: `questions` single-choice questions whose
+// FIRST option is always the correct one, so a test can answer exactly as many
+// correctly as it means to. Five questions makes each one worth 20%, which is
+// what lets US-020's 60% and 80% cases be expressed exactly.
+const makeQuizModule = async (
+  author,
+  {
+    questions = 5,
+    items = 2,
+    passMark = 70,
+    maxAttempts = 3,
+    timeLimitMinutes = null,
+    shuffleQuestions = false,
+    targetRoles = [],
+    targetDepartments = [],
+    code,
+  } = {}
+) => {
+  sequence += 1;
+
+  return TrainingModule.create({
+    title: `Quiz Module ${sequence}`,
+    code: code || `TST-QUIZ-${String(sequence).padStart(3, '0')}`,
+    category: POLICY_CATEGORY.EMAIL_SECURITY,
+    targetRoles,
+    targetDepartments,
+    createdBy: author._id,
+    contentItems: Array.from({ length: items }, (unused, index) => ({
+      order: index + 1,
+      type: CONTENT_ITEM_TYPE.ARTICLE,
+      title: `Section ${index + 1}`,
+      body: `Read this, section ${index + 1}.`,
+    })),
+    quiz: {
+      passMark,
+      maxAttempts,
+      timeLimitMinutes,
+      shuffleQuestions,
+      questions: Array.from({ length: questions }, (unused, index) => ({
+        order: index + 1,
+        text: `Question number ${index + 1}?`,
+        type: QUESTION_TYPE.SINGLE_CHOICE,
+        options: [
+          { text: 'The right answer.', isCorrect: true },
+          { text: 'The wrong answer.', isCorrect: false },
+        ],
+        explanation: `Because of reason ${index + 1}.`,
+      })),
+    },
+  });
+};
+
+// Publishes through the API, so the assignments really are fanned out by the
+// publish flow rather than written by hand behind it.
+const publishModule = (admin, moduleId) =>
+  request(app).post(`${TRAINING}/modules/${moduleId}/publish`).set(as(admin)).send({});
+
+// Works through every content item as that user, which is what unlocks the quiz.
+const completeAllContent = async (user, module) => {
+  const results = [];
+  for (const item of module.contentItems) {
+    // eslint-disable-next-line no-await-in-loop
+    results.push(
+      await request(app)
+        .post(`${TRAINING}/modules/${module._id}/progress`)
+        .set(as(user))
+        .send({ itemId: item.itemId })
+    );
+  }
+  return results[results.length - 1];
+};
+
 module.exports = {
   app,
   request,
@@ -171,6 +243,9 @@ module.exports = {
   as,
   makePublishedPolicy,
   makeTrainingModule,
+  makeQuizModule,
+  publishModule,
+  completeAllContent,
   ROLES,
   DEPARTMENTS,
 };
