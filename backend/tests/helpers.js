@@ -16,6 +16,7 @@ const {
 
 const app = createApp();
 const POLICIES = `${API_PREFIX}/policies`;
+const TRAINING = `${API_PREFIX}/training`;
 
 // A real bcrypt digest shape. The User pre-save hook recognises it as already
 // hashed and skips the rounds, which keeps a suite that creates dozens of
@@ -164,6 +165,7 @@ module.exports = {
   request,
   API_PREFIX,
   POLICIES,
+  TRAINING,
   makeUser,
   makeAdmin,
   as,

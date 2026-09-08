@@ -42,6 +42,11 @@ const AUDIT_ACTIONS = Object.freeze({
   COMPLIANCE_AUDIT_VIEWED: 'COMPLIANCE_AUDIT_VIEWED',
 
   // M3 - Training & awareness
+  TRAINING_MODULE_CREATED: 'TRAINING_MODULE_CREATED',
+  // Covers content and quiz edits alike. The metadata says which of the two
+  // changed, because editing a live quiz is the one that needs explaining
+  // afterwards.
+  TRAINING_MODULE_UPDATED: 'TRAINING_MODULE_UPDATED',
   TRAINING_PUBLISHED: 'TRAINING_PUBLISHED',
   QUIZ_SUBMITTED: 'QUIZ_SUBMITTED',
 });

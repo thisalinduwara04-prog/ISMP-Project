@@ -13,6 +13,8 @@ import PolicyDetail from './pages/policies/PolicyDetail';
 import PolicyReader from './pages/policies/PolicyReader';
 import PolicyNew from './pages/policies/PolicyNew';
 import VersionEditor from './pages/policies/VersionEditor';
+import ModuleList from './pages/training/ModuleList';
+import ModuleBuilder from './pages/training/ModuleBuilder';
 import DepartmentDashboard from './pages/home/DepartmentDashboard';
 import AdminConsole from './pages/home/AdminConsole';
 import Forbidden from './pages/Forbidden';
@@ -66,6 +68,34 @@ const App = () => (
           element={(
             <RequireCapability capability={CAPABILITIES.POLICY_AUTHOR}>
               <VersionEditor />
+            </RequireCapability>
+          )}
+        />
+
+        {/* M3 authoring. Gated on TRAINING_AUTHOR so the screens are not
+            offered to someone who cannot use them — the API refuses them
+            regardless. The employee-facing module player lands with M3-T4. */}
+        <Route
+          path="/training"
+          element={(
+            <RequireCapability capability={CAPABILITIES.TRAINING_AUTHOR}>
+              <ModuleList />
+            </RequireCapability>
+          )}
+        />
+        <Route
+          path="/training/modules/new"
+          element={(
+            <RequireCapability capability={CAPABILITIES.TRAINING_AUTHOR}>
+              <ModuleBuilder />
+            </RequireCapability>
+          )}
+        />
+        <Route
+          path="/training/modules/:moduleId/edit"
+          element={(
+            <RequireCapability capability={CAPABILITIES.TRAINING_AUTHOR}>
+              <ModuleBuilder />
             </RequireCapability>
           )}
         />

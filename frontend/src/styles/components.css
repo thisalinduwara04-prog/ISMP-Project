@@ -1157,3 +1157,122 @@
   font-size: 0.75rem;
   color: var(--ink-soft);
 }
+
+/* ---------------------------------------------------------------------------
+   Training module builder (M3-T2)
+   --------------------------------------------------------------------------- */
+
+/* Two panes: the running order, and the editor for whichever item is selected.
+   One column below 900px, because the list and the editor are each usable
+   alone and side-by-side panes at 360px are two unusable columns. */
+.builder {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .builder {
+    grid-template-columns: 1fr;
+  }
+}
+
+.builder__list {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+}
+
+.builder__list ol {
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  counter-reset: builder-item;
+}
+
+.builder__item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: grab;
+}
+
+.builder__item--active {
+  background: var(--brand-tint);
+  border-color: var(--brand);
+}
+
+/* The row itself is the button, so the whole card is a target rather than the
+   few pixels of its title. */
+.builder__item-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-height: var(--touch-target);
+  padding: 0.5rem;
+  background: none;
+  border: none;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.builder__item-type {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.builder__item-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.builder__item-actions {
+  display: flex;
+  gap: 0.125rem;
+}
+
+.builder__add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.builder__empty {
+  padding: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.builder__pane {
+  margin: 0;
+}
+
+/* One question per card, so a long quiz reads as a list of separate things
+   rather than one wall of fields. */
+.qcard + .qcard {
+  margin-top: 0.75rem;
+}
+
+.option-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.375rem;
+}
+
+.option-row input[type='checkbox'],
+.option-row input[type='radio'] {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: none;
+}

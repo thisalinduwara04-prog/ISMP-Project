@@ -9,7 +9,11 @@ const AppAssert = require('../../utils/AppAssert');
 const AppErrorCode = require('../../constants/appErrorCode');
 const { NOT_FOUND, CONFLICT, FORBIDDEN } = require('../../constants/http');
 const { ROLES } = require('../../constants/roles');
-const { POLICY_STATUS, POLICY_VERSION_STATUS } = require('../../constants/policies');
+const {
+  POLICY_STATUS,
+  POLICY_VERSION_STATUS,
+  CATEGORY_ABBREVIATION,
+} = require('../../constants/policies');
 const { buildAudienceFilter, matchesAudience } = require('../../utils/audience');
 const assignmentService = require('../assignment/assignment.service');
 const audit = require('../audit/audit.service');
@@ -109,15 +113,6 @@ const toPolicySummary = (policy, currentVersion, { includeAudience = false } = {
 // sequence counts existing policies in that category, then steps forward past
 // anything already taken - which also covers codes typed by hand before this
 // existed, and the gap left by a deleted policy.
-const CATEGORY_ABBREVIATION = {
-  DATA_HANDLING: 'DAT',
-  ACCESS_CONTROL: 'ACC',
-  DEVICE_SECURITY: 'DEV',
-  EMAIL_SECURITY: 'EML',
-  INCIDENT_RESPONSE: 'INC',
-  GENERAL: 'GEN',
-};
-
 const generateCode = async (category) => {
   const prefix = `POL-${CATEGORY_ABBREVIATION[category] || 'GEN'}`;
   const taken = new Set(
