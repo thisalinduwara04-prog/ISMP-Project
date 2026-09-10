@@ -46,6 +46,13 @@ const CONTENT_TYPE_LABELS = {
   PDF: 'PDF',
 };
 
+// What the builder OFFERS to add. ARTICLE is deliberately absent: it and
+// WALKTHROUGH are the same editor over the same markdown field, and two buttons
+// for one thing is a choice an admin has to make for no reason. The type stays
+// in the schema (7.8) and in the labels above, so an ARTICLE item created
+// elsewhere - the seed script writes one - still displays and still edits.
+const ADDABLE_CONTENT_TYPES = ['WALKTHROUGH', 'VIDEO', 'PDF'];
+
 const QUESTION_TYPE_LABELS = {
   SINGLE_CHOICE: 'One correct answer',
   MULTI_CHOICE: 'Several correct answers',
@@ -752,7 +759,7 @@ const ModuleBuilder = () => {
             )}
 
             <div className="builder__add">
-              {Object.entries(CONTENT_TYPE_LABELS).map(([type, label]) => (
+              {ADDABLE_CONTENT_TYPES.map((type) => (
                 <button
                   key={type}
                   type="button"
@@ -760,7 +767,7 @@ const ModuleBuilder = () => {
                   disabled={draft.contentItems.length >= MAX_ITEMS}
                   onClick={() => addItem(type)}
                 >
-                  + {label}
+                  + {CONTENT_TYPE_LABELS[type]}
                 </button>
               ))}
             </div>
