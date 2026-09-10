@@ -42,10 +42,12 @@ const applySecurity = (app) => {
   app.use(requestId);
   app.use(
     helmet({
-      // The API serves JSON only; a CSP here would govern nothing. HSTS is
-      // terminated at the hosting layer.
+      // The API serves JSON only, so a CSP here would govern nothing.
       contentSecurityPolicy: false,
       crossOriginResourcePolicy: { policy: 'same-site' },
+      // helmet's HSTS default is kept (max-age 180 days, includeSubDomains).
+      // Browsers ignore the header over plain http, so it only takes effect
+      // once the deployment terminates TLS - which NFR-SEC-01 requires.
     })
   );
   app.use(corsMiddleware);
