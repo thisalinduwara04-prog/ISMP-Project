@@ -54,7 +54,7 @@ const Assignment = require('../../models/Assignment');
 const User = require('../../models/User');
 const AppAssert = require('../../utils/AppAssert');
 const AppErrorCode = require('../../constants/appErrorCode');
-const { BAD_REQUEST } = require('../../constants/http');
+const { BAD_REQUEST, NOT_FOUND } = require('../../constants/http');
 const { addDays } = require('../../utils/date.util');
 const { audienceUserFilter } = require('../../utils/audience');
 const {
@@ -273,9 +273,51 @@ const updateProgress = async ({
   moduleId,
   completedItemId,
   totalItems,
-  session,
+  session = null,
 } = {}) => {
-  throw new Error(NOT_IMPLEMENTED);
+  const assignment = await Assignment.findOne({
+    userId,
+    itemType: ASSIGNMENT_ITEM_TYPE.TRAINING,
+    itemId: moduleId,
+  }).session(session);
+
+  AppAssert(
+    assignment,
+    NOT_FOUND,
+    'This training module has not been assigned to you.',
+    AppErrorCode.NOT_FOUND
+  );
+
+  // Idempotent by construction: a Set, not a push. Marking the same item
+  // complete twice - a double tap, a retried request - leaves one entry.
+  const completed = new Set(assignment.progress?.completedItemIds || []);
+  completed.add(completedItemId);
+  const completedItemIds = [...completed];
+
+  // Capped at 100 because the two numbers can disagree: an admin who removes a
+  // content item leaves progress records naming an item that is gone, and 5 of
+  // 4 items must not read as 125% complete.
+  const percentComplete =
+    totalItems > 0 ? Math.min(100, Math.round((completedItemIds.length / totalItems) * 100)) : 0;
+
+  assignment.progress = { completedItemIds, percentComplete };
+
+  // First item done: PENDING becomes IN_PROGRESS. OVERDUE deliberately does
+  // NOT - someone starting work that is already late is still late, and moving
+  // it would quietly remove them from the figures a manager chases.
+  if (assignment.status === ASSIGNMENT_STATUS.PENDING) {
+    assignment.status = ASSIGNMENT_STATUS.IN_PROGRESS;
+  }
+  if (!assignment.startedAt) assignment.startedAt = new Date();
+
+  await assignment.save({ session });
+
+  return {
+    completedItemIds,
+    percentComplete,
+    status: assignment.status,
+    startedAt: assignment.startedAt,
+  };
 };
 
 /**

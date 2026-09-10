@@ -21,6 +21,23 @@ module.exports = {
       branches: 45,
       functions: 60,
     },
+    // M3-T9. The same target for training, and stated for the services
+    // separately from the controllers below - a suite that hit 60% by
+    // exercising thin controllers would satisfy the number and miss the point.
+    './src/modules/training/training.service.js': {
+      statements: 60,
+      branches: 45,
+      functions: 60,
+    },
+    './src/modules/training/attempt.service.js': {
+      statements: 60,
+      branches: 45,
+      functions: 60,
+    },
+    './src/modules/training/training.controller.js': {
+      statements: 60,
+      functions: 60,
+    },
   },
 
   // The in-memory server takes a moment to start on a cold run.

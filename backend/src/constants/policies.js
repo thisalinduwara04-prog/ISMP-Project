@@ -43,9 +43,23 @@ const FROZEN_VERSION_STATUSES = Object.freeze([
 
 const DEFAULT_POLICY_DUE_IN_DAYS = 14;
 
+// Short forms used to generate item codes: POL-DAT-003 for a policy,
+// TRN-EML-001 for a training module. Here rather than in either service
+// because M2 and M3 both file content under the same categories, and two
+// copies of this map is how EMAIL_SECURITY ends up abbreviated two ways.
+const CATEGORY_ABBREVIATION = Object.freeze({
+  [POLICY_CATEGORY.DATA_HANDLING]: 'DAT',
+  [POLICY_CATEGORY.ACCESS_CONTROL]: 'ACC',
+  [POLICY_CATEGORY.DEVICE_SECURITY]: 'DEV',
+  [POLICY_CATEGORY.EMAIL_SECURITY]: 'EML',
+  [POLICY_CATEGORY.INCIDENT_RESPONSE]: 'INC',
+  [POLICY_CATEGORY.GENERAL]: 'GEN',
+});
+
 module.exports = {
   POLICY_CATEGORY,
   ALL_POLICY_CATEGORIES,
+  CATEGORY_ABBREVIATION,
   POLICY_STATUS,
   ALL_POLICY_STATUSES,
   POLICY_VERSION_STATUS,

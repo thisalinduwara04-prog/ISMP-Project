@@ -12,7 +12,7 @@ import { CAPABILITIES } from '../../constants';
 const TILES = [
   { capability: CAPABILITIES.USER_MANAGE, title: 'User accounts', body: 'Create, deactivate and re-role staff.', module: 'M1' },
   { capability: CAPABILITIES.POLICY_AUTHOR, title: 'Policies', body: 'Read, version and acknowledge security policies.', module: 'M2', to: '/policies' },
-  { capability: CAPABILITIES.TRAINING_AUTHOR, title: 'Training', body: 'Build modules and quizzes.', module: 'M3' },
+  { capability: CAPABILITIES.TRAINING_AUTHOR, title: 'Training', body: 'Build modules and quizzes.', module: 'M3', to: '/training' },
   { capability: CAPABILITIES.COMPLIANCE_VIEW_ORGANISATION, title: 'Compliance', body: 'Organisation-wide dashboard and exports.', module: 'M4' },
   { capability: CAPABILITIES.INCIDENT_TRIAGE, title: 'Incidents', body: 'Triage and resolve reported incidents.', module: 'M5' },
   { capability: CAPABILITIES.AUDIT_VIEW, title: 'Audit log', body: 'Review security events and access denials.', module: 'M1' },

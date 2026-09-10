@@ -1,4 +1,5 @@
 import MyPolicies from '../../components/MyPolicies';
+import MyTraining from '../../components/MyTraining';
 import { useAuth } from '../../auth/AuthContext';
 import { DEPARTMENT_LABELS } from '../../constants';
 
@@ -15,10 +16,13 @@ const DepartmentDashboard = () => {
         <p>Compliance overview for your team</p>
       </header>
 
-      {/* A manager has their own policies to read like anyone else. Without
-          this the only route to them was typing the URL, because managers see
-          neither My Tasks nor the admin console. */}
+      {/* A manager has their own policies to read and their own training to
+          complete, like anyone else. Without these the only route to either was
+          typing the URL, because managers see neither My Tasks nor the admin
+          console. */}
       <MyPolicies heading="policies to read" />
+
+      <MyTraining />
 
       <section className="card">
         <h2>No compliance data yet</h2>

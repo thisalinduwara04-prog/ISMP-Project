@@ -12,6 +12,12 @@ const User = require('../src/models/User');
 const RefreshToken = require('../src/models/RefreshToken');
 const { ROLES, DEPARTMENTS } = require('../src/constants/roles');
 const redactUri = require('../src/utils/redactUri');
+const { seedTraining } = require('./training.seed');
+
+// `--reset` clears the evidence trail as well - the audit log - so a demo can
+// start from nothing. Without it the accounts and the training content are
+// still rebuilt; only the history is left alone.
+const RESET = process.argv.includes('--reset');
 
 const DEMO_PASSWORD = 'Savikro#2026';
 
@@ -152,6 +158,13 @@ const seed = async () => {
   await RefreshToken.syncIndexes();
   console.log('[seed] Indexes synchronised');
 
+  // --- M3: training content, assignments and attempts ---
+  //
+  // Separate file, called with the accounts that were just created, so the
+  // account list above stays the one place people are defined.
+  const admin = created.find((user) => user.role === ROLES.ADMIN);
+  const training = await seedTraining({ admin, users: created, reset: RESET });
+
   console.log(`\n[seed] Created ${created.length} accounts. Password for all: ${DEMO_PASSWORD}\n`);
   console.log('  Employee ID  Role      Department       Name');
   console.log('  -----------  --------  ---------------  ----------------------');
@@ -165,11 +178,34 @@ const seed = async () => {
     );
   });
 
+  console.log('\n[seed] Training modules:');
+  training.created.forEach(({ module, publication }) => {
+    const audience = module.targetDepartments.length
+      ? module.targetDepartments.join(', ')
+      : 'everyone';
+    console.log(
+      `  ${module.code.padEnd(12)}  ${module.contentItems.length} item(s), ` +
+        `${module.quiz.questions.length} question(s), pass ${module.quiz.passMark}%  ` +
+        `-> ${publication.assignedCount} assigned (${audience})`
+    );
+  });
+
+  console.log('\n[seed] Demo states on TRN-EML-001:');
+  console.log('  SVK-020  failed 40%, retook and passed 80%  <- best score counts');
+  console.log('  SVK-021  part-way through the content');
+  console.log('  SVK-022  OVERDUE, three days past its due date');
+  console.log('  SVK-024  completed first time');
+
   console.log('\n[seed] Suggested logins:');
   console.log('  Admin console       SVK-001');
   console.log('  Department manager  SVK-012  (Warehouse)');
-  console.log('  Employee            SVK-020  (Sales)');
+  console.log('  Employee            SVK-020  (Sales, has a retake to show)');
+  console.log('  Audience filtering  SVK-022  (Warehouse — TRN-DAT-001 is SALES only)');
   console.log('  Forced change       SVK-025');
+
+  if (!RESET) {
+    console.log('\n[seed] Run with --reset to clear the audit log as well.');
+  }
 
   await mongoose.disconnect();
 };

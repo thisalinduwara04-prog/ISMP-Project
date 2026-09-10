@@ -1157,3 +1157,233 @@
   font-size: 0.75rem;
   color: var(--ink-soft);
 }
+
+/* ---------------------------------------------------------------------------
+   Training module builder (M3-T2)
+   --------------------------------------------------------------------------- */
+
+/* Two panes: the running order, and the editor for whichever item is selected.
+   One column below 900px, because the list and the editor are each usable
+   alone and side-by-side panes at 360px are two unusable columns. */
+.builder {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .builder {
+    grid-template-columns: 1fr;
+  }
+}
+
+.builder__list {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+}
+
+.builder__list ol {
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  counter-reset: builder-item;
+}
+
+.builder__item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: grab;
+}
+
+.builder__item--active {
+  background: var(--brand-tint);
+  border-color: var(--brand);
+}
+
+/* The row itself is the button, so the whole card is a target rather than the
+   few pixels of its title. */
+.builder__item-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-height: var(--touch-target);
+  padding: 0.5rem;
+  background: none;
+  border: none;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.builder__item-type {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.builder__item-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.builder__item-actions {
+  display: flex;
+  gap: 0.125rem;
+}
+
+.builder__add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.builder__empty {
+  padding: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.builder__pane {
+  margin: 0;
+}
+
+/* One question per card, so a long quiz reads as a list of separate things
+   rather than one wall of fields. */
+.qcard + .qcard {
+  margin-top: 0.75rem;
+}
+
+.option-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.375rem;
+}
+
+.option-row input[type='checkbox'],
+.option-row input[type='radio'] {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Module player (M3-T4/T5)
+   --------------------------------------------------------------------------- */
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.progress__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* A real <progress> element: the value is in the DOM, so a screen reader
+   announces it rather than describing a decorated div. */
+.progress__bar {
+  width: 100%;
+  height: 0.5rem;
+  appearance: none;
+  border: none;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.progress__bar::-webkit-progress-bar {
+  background: var(--line);
+  border-radius: 999px;
+}
+
+.progress__bar::-webkit-progress-value {
+  background: var(--brand);
+  border-radius: 999px;
+}
+
+.progress__bar::-moz-progress-bar {
+  background: var(--brand);
+  border-radius: 999px;
+}
+
+/* Fills the pane and no more, so a 1080p clip does not push the page wider
+   than a phone on the module player. */
+.player__video {
+  width: 100%;
+  max-height: 60vh;
+  border-radius: var(--radius-sm);
+  background: #000;
+}
+
+/* ---------------------------------------------------------------------------
+   Training on a phone (M3-T7 · NFR-USE-01/02)
+   --------------------------------------------------------------------------- */
+
+/* Options as full-width rows. An option is something a warehouse employee taps
+   between deliveries, and a target the width of its own text is a target that
+   gets missed. */
+.choice-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.choice--block {
+  display: flex;
+  width: 100%;
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.choice--block input {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: none;
+}
+
+/* The primary action follows the page on a narrow screen, so it sits in the
+   lower third under the thumb rather than at the end of a scroll. Only on
+   phones: on a desktop a bar that tracks the viewport is just in the way. */
+@media (max-width: 700px) {
+  .actionbar {
+    position: sticky;
+    bottom: 0.5rem;
+    z-index: 5;
+    /* An opaque background and a shadow, because a sticky bar that lets the
+       page show through it is unreadable the moment anything scrolls under. */
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    padding: 0.5rem;
+    box-shadow: var(--shadow);
+  }
+
+  .actionbar > .btn,
+  .actionbar .confirm-actions .btn {
+    flex: 1;
+  }
+}
+
+/* The module player stacks its sidebar above the content below 900px through
+   `.builder`; at the narrowest sizes the running order is a long list to
+   scroll past, so it is capped and scrolls within itself. */
+@media (max-width: 700px) {
+  .builder__list ol {
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+}

@@ -13,6 +13,10 @@ import PolicyDetail from './pages/policies/PolicyDetail';
 import PolicyReader from './pages/policies/PolicyReader';
 import PolicyNew from './pages/policies/PolicyNew';
 import VersionEditor from './pages/policies/VersionEditor';
+import ModuleList from './pages/training/ModuleList';
+import ModuleBuilder from './pages/training/ModuleBuilder';
+import ModulePlayer from './pages/training/ModulePlayer';
+import QuizAttempt from './pages/training/QuizAttempt';
 import DepartmentDashboard from './pages/home/DepartmentDashboard';
 import AdminConsole from './pages/home/AdminConsole';
 import Forbidden from './pages/Forbidden';
@@ -66,6 +70,32 @@ const App = () => (
           element={(
             <RequireCapability capability={CAPABILITIES.POLICY_AUTHOR}>
               <VersionEditor />
+            </RequireCapability>
+          )}
+        />
+
+        {/* M3. Not capability-gated: every role holds TRAINING_COMPLETE, and
+            the list decides what to render from what the API returns — an
+            author sees every module, everyone else sees their own. */}
+        <Route path="/training" element={<ModuleList />} />
+        <Route path="/training/modules/:moduleId" element={<ModulePlayer />} />
+        <Route path="/training/attempts/:attemptId" element={<QuizAttempt />} />
+
+        {/* Authoring. Gated so the screens are not offered to someone who
+            cannot use them — the API refuses them regardless. */}
+        <Route
+          path="/training/modules/new"
+          element={(
+            <RequireCapability capability={CAPABILITIES.TRAINING_AUTHOR}>
+              <ModuleBuilder />
+            </RequireCapability>
+          )}
+        />
+        <Route
+          path="/training/modules/:moduleId/edit"
+          element={(
+            <RequireCapability capability={CAPABILITIES.TRAINING_AUTHOR}>
+              <ModuleBuilder />
             </RequireCapability>
           )}
         />
