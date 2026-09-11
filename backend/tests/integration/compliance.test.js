@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
 const request = require('supertest');
 
 const { createApp } = require('../../src/app');
@@ -13,19 +12,7 @@ const { clearDashboardCache } = require('../../src/modules/compliance/compliance
 const assignmentService = require('../../src/modules/assignment/assignment.service');
 
 describe('M4 compliance tracking and reporting', () => {
-  let mongo;
-  let app;
-
-  beforeAll(async () => {
-    mongo = await MongoMemoryServer.create();
-    await mongoose.connect(mongo.getUri());
-    app = createApp();
-  });
-
-  afterAll(async () => {
-    await mongoose.disconnect();
-    await mongo.stop();
-  });
+  const app = createApp();
 
   beforeEach(async () => {
     clearDashboardCache();

@@ -36,6 +36,19 @@ const renderInline = (text) =>
     return piece;
   });
 
+// Paragraph alignment. Markdown has no syntax for it, so `::center::` at the
+// very start of a paragraph is a convention of our own - written by the
+// toolbar, stripped here, and turned into a class rather than an inline style.
+// Left is the default and needs no marker.
+const ALIGN_MARKER = /^::(left|center|right)::\s*/;
+
+const takeAlignment = (text) => {
+  const match = text.match(ALIGN_MARKER);
+  if (!match) return { text, align: null };
+
+  return { text: text.slice(match[0].length), align: match[1] };
+};
+
 // Groups lines into blocks first, so a list stays one <ul> rather than
 // becoming a run of single-item lists.
 const toBlocks = (source) => {
@@ -52,10 +65,18 @@ const toBlocks = (source) => {
 
     if (!line.trim()) return closeList();
 
-    const heading = line.match(/^(#{1,4})\s+(.*)$/);
+    // The marker sits before the heading hashes, so it is taken off first.
+    const { text: unaligned, align } = takeAlignment(line);
+
+    const heading = unaligned.match(/^(#{1,4})\s+(.*)$/);
     if (heading) {
       closeList();
-      return blocks.push({ type: 'heading', level: heading[1].length, text: heading[2] });
+      return blocks.push({
+        type: 'heading',
+        level: heading[1].length,
+        text: heading[2],
+        align,
+      });
     }
 
     const bullet = line.match(/^\s*[-*]\s+(.*)$/);
@@ -81,7 +102,7 @@ const toBlocks = (source) => {
     }
 
     closeList();
-    return blocks.push({ type: 'paragraph', text: line.trim() });
+    return blocks.push({ type: 'paragraph', text: unaligned.trim(), align });
   });
 
   closeList();
@@ -96,11 +117,17 @@ const MarkdownText = ({ children }) => {
       {blocks.map((block, index) => {
         const key = `${block.type}-${index}`;
 
+        const alignClass = block.align ? `align-${block.align}` : undefined;
+
         if (block.type === 'heading') {
           // Policy bodies start at ## so they nest under the page's own <h1>,
           // keeping the heading outline correct for a screen reader.
           const Tag = `h${Math.min(block.level + 1, 6)}`;
-          return <Tag key={key}>{renderInline(block.text)}</Tag>;
+          return (
+            <Tag key={key} className={alignClass}>
+              {renderInline(block.text)}
+            </Tag>
+          );
         }
 
         if (block.type === 'list') {
@@ -115,7 +142,11 @@ const MarkdownText = ({ children }) => {
           );
         }
 
-        return <p key={key}>{renderInline(block.text)}</p>;
+        return (
+          <p key={key} className={alignClass}>
+            {renderInline(block.text)}
+          </p>
+        );
       })}
     </div>
   );

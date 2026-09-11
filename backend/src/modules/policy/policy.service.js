@@ -3,16 +3,17 @@ const mongoose = require('mongoose');
 const Policy = require('../../models/Policy');
 const PolicyVersion = require('../../models/PolicyVersion');
 const Acknowledgement = require('../../models/Acknowledgement');
-const { discard } = require('../../middleware/upload');
-const { storedPathFor } = require('./attachment.service');
-
-const discardStoredFile = (fileName) => discard(storedPathFor(fileName));
+const { removeForVersions } = require('./attachment.service');
 const AppError = require('../../utils/AppError');
 const AppAssert = require('../../utils/AppAssert');
 const AppErrorCode = require('../../constants/appErrorCode');
 const { NOT_FOUND, CONFLICT, FORBIDDEN } = require('../../constants/http');
 const { ROLES } = require('../../constants/roles');
-const { POLICY_STATUS, POLICY_VERSION_STATUS } = require('../../constants/policies');
+const {
+  POLICY_STATUS,
+  POLICY_VERSION_STATUS,
+  CATEGORY_ABBREVIATION,
+} = require('../../constants/policies');
 const { buildAudienceFilter, matchesAudience } = require('../../utils/audience');
 const assignmentService = require('../assignment/assignment.service');
 const audit = require('../audit/audit.service');
@@ -112,15 +113,6 @@ const toPolicySummary = (policy, currentVersion, { includeAudience = false } = {
 // sequence counts existing policies in that category, then steps forward past
 // anything already taken - which also covers codes typed by hand before this
 // existed, and the gap left by a deleted policy.
-const CATEGORY_ABBREVIATION = {
-  DATA_HANDLING: 'DAT',
-  ACCESS_CONTROL: 'ACC',
-  DEVICE_SECURITY: 'DEV',
-  EMAIL_SECURITY: 'EML',
-  INCIDENT_RESPONSE: 'INC',
-  GENERAL: 'GEN',
-};
-
 const generateCode = async (category) => {
   const prefix = `POL-${CATEGORY_ABBREVIATION[category] || 'GEN'}`;
   const taken = new Set(
@@ -225,12 +217,13 @@ const archive = async (policy, actor, req) => {
     liveVersion.status = POLICY_VERSION_STATUS.ARCHIVED;
     await liveVersion.save();
 
-    // Every assignment closes as SUPERSEDED so the archived policy disappears
-    // from live compliance. Completion timestamps/references and the separate
-    // acknowledgement evidence remain intact.
+    // Open assignments close as SUPERSEDED so unfinished work disappears from
+    // live compliance. Completed rows and acknowledgement evidence remain as
+    // the historical record of work that was actually done.
     ({ supersededCount } = await assignmentService.supersede({
       itemType: ASSIGNMENT_ITEM_TYPE.POLICY,
       itemId: liveVersion._id,
+      includeCompleted: false,
     }));
   }
 
@@ -302,10 +295,8 @@ const destroy = async (policyId, { acknowledgeEvidenceLoss } = {}, actor, req) =
     req,
   });
 
-  // Attached PDFs would otherwise be orphaned on disk forever.
-  await Promise.all(
-    versions.filter((v) => v.attachmentUrl).map((v) => discardStoredFile(v.attachmentUrl))
-  );
+  // Attached PDFs go with the versions that referenced them.
+  await removeForVersions(versionIds);
 
   // The acknowledgements model blocks deletes by design (it is insert-only),
   // so this goes through the driver. That bypass is the whole reason this

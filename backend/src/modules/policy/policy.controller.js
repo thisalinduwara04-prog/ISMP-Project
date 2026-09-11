@@ -120,24 +120,35 @@ const attachFile = asyncHandler(async (req, res) => {
   return res.status(CREATED).json(ok(req, { attachment }));
 });
 
+const listAttachments = asyncHandler(async (req, res) => {
+  const attachments = await attachmentService.listForVersion(req.params.id, req.params.vid);
+  return res.status(OK).json(ok(req, { attachments }));
+});
+
 const downloadAttachment = asyncHandler(async (req, res) => {
-  const { filePath, downloadName } = await attachmentService.openStream(
+  const { data, mimeType, sizeBytes, downloadName } = await attachmentService.read(
     req.params.id,
     req.params.vid,
+    req.params.aid,
     req.user,
     policyService.isAdmin(req.user)
   );
 
   // `inline` so a phone opens it in the viewer rather than forcing a download
   // the user then has to find. Content-Type is fixed because the magic-byte
-  // check on the way in guarantees what this file is.
-  res.type('application/pdf');
+  // check on the way in guarantees what these bytes are.
+  res.type(mimeType);
+  res.setHeader('Content-Length', sizeBytes);
   res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(downloadName)}"`);
-  return res.sendFile(filePath);
+  // Private: the file is audience-checked, so no shared cache may keep a copy
+  // that could be served to somebody the check would have refused.
+  res.setHeader('Cache-Control', 'private, no-store');
+
+  return res.send(data);
 });
 
 const removeAttachment = asyncHandler(async (req, res) => {
-  const result = await attachmentService.remove(req.params.id, req.params.vid);
+  const result = await attachmentService.remove(req.params.id, req.params.vid, req.params.aid);
   return res.status(OK).json(ok(req, result));
 });
 
@@ -155,6 +166,7 @@ module.exports = {
   acknowledgeVersion,
   listAcknowledgements,
   attachFile,
+  listAttachments,
   downloadAttachment,
   removeAttachment,
 };

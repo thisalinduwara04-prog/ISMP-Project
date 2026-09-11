@@ -26,7 +26,11 @@ const policyVersionSchema = new mongoose.Schema(
     // parent does not silently rewrite history.
     title: { type: String, required: [true, 'Title is required.'], trim: true },
 
-    body: { type: String, required: [true, 'Policy body is required.'] },
+    // Not required at the model, because a DRAFT is work in progress - an
+    // admin may attach the signed PDF before typing anything, or publish a
+    // policy that lives entirely in the attachment. Publishing enforces that
+    // a version has SOMETHING to read: body text, an attached PDF, or both.
+    body: { type: String, default: '' },
 
     // "Added USB storage restriction". Optional for v1 - there is nothing to
     // describe a change from - and required from v2 onward, because a reader

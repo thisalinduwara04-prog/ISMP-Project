@@ -36,6 +36,20 @@ export const ROLE_LABELS = {
   ADMIN: 'Administrator',
 };
 
+// Mirrors CATEGORY_ABBREVIATION in backend/src/modules/policy/policy.service.js.
+// Used ONLY to show the admin what code a new policy will be given before they
+// commit to it. The server generates the real one and remains authoritative —
+// if two admins create a policy in the same category at the same moment, the
+// second gets the next free number rather than a duplicate.
+export const POLICY_CODE_PREFIX = {
+  DATA_HANDLING: 'POL-DAT',
+  ACCESS_CONTROL: 'POL-ACC',
+  DEVICE_SECURITY: 'POL-DEV',
+  EMAIL_SECURITY: 'POL-EML',
+  INCIDENT_RESPONSE: 'POL-INC',
+  GENERAL: 'POL-GEN',
+};
+
 // Mirrors the enum in backend/src/constants/policies.js.
 export const POLICY_CATEGORY_LABELS = {
   GENERAL: 'General',

@@ -189,14 +189,47 @@ const PolicyReader = () => {
       )}
 
       <article className="card reader">
-        <MarkdownText>{version.body}</MarkdownText>
+        {version.body?.trim() ? <MarkdownText>{version.body}</MarkdownText> : null}
 
-        {version.attachmentUrl && (
-          <p className="reader__attachment">
-            <a href={version.attachmentUrl} target="_blank" rel="noreferrer">
-              Download the signed PDF{version.attachmentName ? ` (${version.attachmentName})` : ''}
-            </a>
-          </p>
+        {version.attachments?.length > 0 && (
+          <div
+            className={
+              version.body?.trim()
+                ? 'reader__attachment'
+                : 'reader__attachment reader__attachment--only'
+            }
+          >
+            {/* When the PDFs ARE the policy, they are embedded rather than
+                offered as links - otherwise the reader is asked to confirm
+                they have read documents the page never showed them. */}
+            {!version.body?.trim() &&
+              version.attachments.map((file) => (
+                <object
+                  key={file.id}
+                  data={file.url}
+                  type="application/pdf"
+                  className="reader__pdf"
+                  aria-label={`${file.name} (PDF)`}
+                >
+                  <p>Your browser cannot display this PDF here. Use the link below to open it.</p>
+                </object>
+              ))}
+
+            <p className="reader__attachment-heading">
+              {version.attachments.length === 1
+                ? 'Attached document'
+                : `Attached documents (${version.attachments.length})`}
+            </p>
+            <ul className="reader__attachment-list">
+              {version.attachments.map((file) => (
+                <li key={file.id}>
+                  <a href={file.url} target="_blank" rel="noreferrer">
+                    {file.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
 
         {/* The sentinel the observer above watches. */}

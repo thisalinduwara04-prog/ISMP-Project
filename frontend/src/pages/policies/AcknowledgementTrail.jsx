@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Alert from '../../components/Alert';
 import Spinner from '../../components/Spinner';
 import { fetchAcknowledgements } from '../../api/policies';
+import { downloadXlsx } from '../../utils/xlsx';
 import { formatDateTime, formatDate, formatDuration } from '../../utils/format';
 
 // UC-12 / US-015. The evidence trail for one exact version: who agreed, when,
@@ -10,26 +11,6 @@ import { formatDateTime, formatDate, formatDuration } from '../../utils/format';
 //
 // Both lists come from a single response, so the summary line can never
 // disagree with the tables beneath it.
-
-const csvCell = (value) => {
-  const text = value === null || value === undefined ? '' : String(value);
-  // A leading =, + or - makes Excel treat a cell as a formula. Prefixing an
-  // apostrophe keeps an exported record inert when someone opens it.
-  const safe = /^[=+\-@]/.test(text) ? `'${text}` : text;
-  return `"${safe.replaceAll('"', '""')}"`;
-};
-
-const downloadCsv = (rows, filename) => {
-  const csv = rows.map((row) => row.map(csvCell).join(',')).join('\r\n');
-  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.click();
-
-  URL.revokeObjectURL(url);
-};
 
 const AcknowledgementTrail = ({ policyId, versionId }) => {
   const [data, setData] = useState(null);
@@ -75,8 +56,11 @@ const AcknowledgementTrail = ({ policyId, versionId }) => {
 
   const { summary, acknowledged, outstanding, pagination } = data;
 
-  const exportCsv = () =>
-    downloadCsv(
+  // Numbers are written as numbers so an auditor can sort and total them in
+  // Excel; the timestamp stays an ISO string so it is unambiguous whatever
+  // locale the file is opened in.
+  const exportExcel = () =>
+    downloadXlsx(
       [
         ['Employee ID', 'Name', 'Department', 'Acknowledged at', 'Time spent (s)', 'IP address'],
         ...acknowledged.map((row) => [
@@ -84,11 +68,12 @@ const AcknowledgementTrail = ({ policyId, versionId }) => {
           row.fullName,
           row.department,
           new Date(row.acknowledgedAt).toISOString(),
-          row.timeSpentSeconds,
+          typeof row.timeSpentSeconds === 'number' ? row.timeSpentSeconds : null,
           row.ipAddress,
         ]),
       ],
-      `acknowledgements-v${data.version.versionNumber}.csv`
+      `acknowledgements-v${data.version.versionNumber}.xlsx`,
+      `Version ${data.version.versionNumber}`
     );
 
   return (
@@ -136,7 +121,6 @@ const AcknowledgementTrail = ({ policyId, versionId }) => {
                       <th scope="col">Department</th>
                       <th scope="col">Acknowledged</th>
                       <th scope="col">Time spent</th>
-                      <th scope="col">IP address</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -149,7 +133,6 @@ const AcknowledgementTrail = ({ policyId, versionId }) => {
                         <td>{row.department}</td>
                         <td>{formatDateTime(row.acknowledgedAt)}</td>
                         <td>{formatDuration(row.timeSpentSeconds) || '—'}</td>
-                        <td>{row.ipAddress || '—'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -157,8 +140,8 @@ const AcknowledgementTrail = ({ policyId, versionId }) => {
               </div>
 
               <div className="table-actions">
-                <button type="button" className="btn btn--ghost btn--sm" onClick={exportCsv}>
-                  Download CSV
+                <button type="button" className="btn btn--ghost btn--sm" onClick={exportExcel}>
+                  Download Excel
                 </button>
 
                 {pagination.pages > 1 && (

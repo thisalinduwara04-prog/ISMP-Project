@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import Alert from '../../components/Alert';
-import { createPolicy } from '../../api/policies';
-import { POLICY_CATEGORY_LABELS } from '../../constants';
+import { createPolicy, fetchAllPolicies } from '../../api/policies';
+import { POLICY_CATEGORY_LABELS, POLICY_CODE_PREFIX } from '../../constants';
 
 // Step 1 of 3: the policy SHELL - the record that persists across every future
 // revision. It carries no wording and assigns nothing to anybody; that comes
@@ -13,16 +13,44 @@ const PolicyNew = () => {
 
   const [form, setForm] = useState({
     title: '',
-    code: '',
     category: 'GENERAL',
     description: '',
   });
+  const [takenCodes, setTakenCodes] = useState(null);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   const set = (field) => (event) => setForm({ ...form, [field]: event.target.value });
 
-  const canSubmit = form.title.trim().length >= 3 && form.code.trim().length >= 3;
+  const canSubmit = form.title.trim().length >= 3;
+
+  // Archived policies are included deliberately: they still hold their codes,
+  // so skipping them would preview a number the server will refuse.
+  useEffect(() => {
+    let active = true;
+
+    fetchAllPolicies(true)
+      .then((data) => active && setTakenCodes(new Set(data.policies.map((policy) => policy.code))))
+      .catch(() => active && setTakenCodes(new Set()));
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // The same rule the server applies: first free sequence number for this
+  // category's prefix. Shown so the admin knows what the policy will be called
+  // before creating it; the server still assigns the real one.
+  const previewCode = useMemo(() => {
+    const prefix = POLICY_CODE_PREFIX[form.category] || 'POL-GEN';
+    if (!takenCodes) return `${prefix}-…`;
+
+    for (let sequence = 1; sequence <= 999; sequence += 1) {
+      const candidate = `${prefix}-${String(sequence).padStart(3, '0')}`;
+      if (!takenCodes.has(candidate)) return candidate;
+    }
+    return `${prefix}-…`;
+  }, [form.category, takenCodes]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -30,9 +58,12 @@ const PolicyNew = () => {
     setSubmitting(true);
 
     try {
+      // `code` is deliberately not sent. The server derives it from the
+      // category and the next free sequence number, so every policy is named
+      // consistently and nobody has to invent a unique identifier that then
+      // has to stay fixed for the life of the policy.
       const data = await createPolicy({
         title: form.title.trim(),
-        code: form.code.trim().toUpperCase(),
         category: form.category,
         ...(form.description.trim() ? { description: form.description.trim() } : {}),
       });
@@ -85,26 +116,33 @@ const PolicyNew = () => {
           />
         </label>
 
+        {/* Read-only: the code is derived from the category and the next free
+            number. Shown rather than hidden because it is how this policy will
+            be referred to in every report and acknowledgement record from now
+            on, and it cannot be changed afterwards. */}
         <label className="field" htmlFor="code">
           <span className="field__label">Code</span>
           <input
             id="code"
-            className="field__input"
-            value={form.code}
-            onChange={set('code')}
-            placeholder="POL-AUP-001"
+            className="field__input field__input--readonly"
+            value={previewCode}
+            readOnly
             aria-describedby="code-help"
-            required
           />
           <small id="code-help" className="field__help">
-            Unique, and fixed for the life of the policy — it is how this policy is identified
-            across every revision. Letters, digits and hyphens.
+            Assigned automatically from the category below. Fixed for the life of the policy,
+            because acknowledgement records and reports refer to it.
           </small>
         </label>
 
         <label className="field" htmlFor="category">
           <span className="field__label">Category</span>
-          <select id="category" className="field__input" value={form.category} onChange={set('category')}>
+          <select
+            id="category"
+            className="field__input"
+            value={form.category}
+            onChange={set('category')}
+          >
             {Object.entries(POLICY_CATEGORY_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}

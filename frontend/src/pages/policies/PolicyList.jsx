@@ -67,46 +67,49 @@ const PolicyList = () => {
     const state = policy.task?.state || 'NOT_ASSIGNED';
     const done = state === 'ACKNOWLEDGED';
 
+    const audience =
+      isAuthor && policy.audience
+        ? policy.audience.isEveryone
+          ? 'Everyone'
+          : [...policy.audience.roles, ...policy.audience.departments].join(', ').toLowerCase()
+        : null;
+
     return (
       <li key={policy.id}>
         <Link
-          className={`task-row${state === 'OVERDUE' ? ' task-row--overdue' : ''}`}
+          className={`policy-card${state === 'OVERDUE' ? ' policy-card--overdue' : ''}`}
           to={
             isAuthor
               ? `/policies/${policy.id}`
               : `/policies/${policy.id}/versions/${policy.currentVersion.id}`
           }
         >
-          <span className="task-row__main">
-            <span className="task-row__title">{policy.title}</span>
-            <span className="task-row__meta">
-              {policy.code}
-              {policy.currentVersion
-                ? ` · Version ${policy.currentVersion.versionNumber}`
-                : ' · No published version'}
-              {isAuthor
-                ? policy.audience
-                  ? ` · ${
-                      policy.audience.isEveryone
-                        ? 'Everyone'
-                        : [...policy.audience.roles, ...policy.audience.departments]
-                            .join(', ')
-                            .toLowerCase()
-                    }`
-                  : ''
-                : done
-                  ? ` · Acknowledged ${formatDate(policy.task.completedAt)}`
-                  : ` · ${dueDescription(policy.task?.dueDate)}`}
-            </span>
+          {/* Badge on its own line above the title, so a long policy name has
+              the full width of the card and never collides with it. */}
+          <span className="policy-card__head">
+            <span className="policy-card__code">{policy.code}</span>
+            {isAuthor ? (
+              <span className={`badge badge--${policy.status === 'ARCHIVED' ? 'neutral' : 'ok'}`}>
+                {policy.status.toLowerCase()}
+              </span>
+            ) : (
+              <TaskBadge state={state} />
+            )}
           </span>
 
-          {isAuthor ? (
-            <span className={`badge badge--${policy.status === 'ARCHIVED' ? 'neutral' : 'ok'}`}>
-              {policy.status.toLowerCase()}
-            </span>
-          ) : (
-            <TaskBadge state={state} />
-          )}
+          <span className="policy-card__title">{policy.title}</span>
+
+          <span className="policy-card__meta">
+            {policy.currentVersion
+              ? `Version ${policy.currentVersion.versionNumber}`
+              : 'No published version'}
+            {!isAuthor &&
+              (done
+                ? ` · Acknowledged ${formatDate(policy.task.completedAt)}`
+                : ` · ${dueDescription(policy.task?.dueDate)}`)}
+          </span>
+
+          {audience && <span className="policy-card__audience">{audience}</span>}
         </Link>
       </li>
     );
@@ -149,7 +152,7 @@ const PolicyList = () => {
           </p>
         </section>
       ) : (
-        <ul className="task-list">{policies.map(renderRow)}</ul>
+        <ul className="policy-grid">{policies.map(renderRow)}</ul>
       )}
 
       {/* Below the list: retired policies are a footnote to what is in force,

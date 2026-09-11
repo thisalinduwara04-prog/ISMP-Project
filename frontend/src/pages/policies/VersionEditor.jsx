@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import Alert from '../../components/Alert';
@@ -16,6 +16,13 @@ import {
 } from '../../api/policies';
 import { ROLES, ROLE_LABELS, DEPARTMENT_LABELS } from '../../constants';
 
+const ALL_ROLE_VALUES = Object.values(ROLES);
+const ALL_DEPARTMENT_VALUES = Object.keys(DEPARTMENT_LABELS);
+
+// Mirrors MAX_ATTACHMENTS in the attachment service. The server is the
+// authority; this only stops the button offering an upload it would refuse.
+const MAX_ATTACHMENTS = 5;
+
 // Steps 2 and 3: write the wording, choose who it is for, attach the signed
 // PDF, then publish.
 //
@@ -27,7 +34,6 @@ import { ROLES, ROLE_LABELS, DEPARTMENT_LABELS } from '../../constants';
 const emptyDraft = {
   title: '',
   body: '',
-  changeNote: '',
   targetRoles: [],
   targetDepartments: [],
   dueInDays: 14,
@@ -46,6 +52,10 @@ const VersionEditor = () => {
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(false);
   const [confirmingPublish, setConfirmingPublish] = useState(false);
+
+  // Shared by the toolbar button and the attachment panel, so there is one
+  // file input and one upload path rather than two that could drift.
+  const fileInputRef = useRef(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -71,7 +81,6 @@ const VersionEditor = () => {
       setDraft({
         title: versionData.version.title,
         body: versionData.version.body,
-        changeNote: versionData.version.changeNote || '',
         targetRoles: versionData.version.targetRoles || [],
         targetDepartments: versionData.version.targetDepartments || [],
         dueInDays: versionData.version.dueInDays,
@@ -93,32 +102,41 @@ const VersionEditor = () => {
         : [...current[field], value],
     }));
 
+  // One control that both selects everything and clears it, because those are
+  // the two things an admin actually wants and a separate "clear" button would
+  // sit there greyed out most of the time.
+  const setAll = (field, values) =>
+    setDraft((current) => ({
+      ...current,
+      [field]: current[field].length === values.length ? [] : [...values],
+    }));
+
   const nextVersionNumber = isNew
     ? (policy?.versions?.[0]?.versionNumber || 0) + 1
     : existing?.versionNumber;
-  const changeNoteRequired = nextVersionNumber >= 2;
   const isDraft = isNew || existing?.status === 'DRAFT';
 
-  const canSave =
-    draft.body.trim().length > 0 && (!changeNoteRequired || draft.changeNote.trim().length > 0);
+  const attachedFiles = existing?.attachments || [];
+  const hasContent = draft.body.trim().length > 0 || attachedFiles.length > 0;
+
+  // At component scope because two paths need it: Save draft, and attaching a
+  // PDF to a version that has not been created yet.
+  const buildPayload = () => ({
+    title: draft.title.trim(),
+    body: draft.body,
+    targetRoles: draft.targetRoles,
+    targetDepartments: draft.targetDepartments,
+    dueInDays: Number(draft.dueInDays),
+  });
 
   const save = async () => {
     setBusy(true);
     setError(null);
 
-    const payload = {
-      title: draft.title.trim(),
-      body: draft.body,
-      targetRoles: draft.targetRoles,
-      targetDepartments: draft.targetDepartments,
-      dueInDays: Number(draft.dueInDays),
-      ...(draft.changeNote.trim() ? { changeNote: draft.changeNote.trim() } : {}),
-    };
-
     try {
       const saved = isNew
-        ? (await createVersion(policyId, payload)).version
-        : (await updateVersion(policyId, versionId, payload)).version;
+        ? (await createVersion(policyId, buildPayload())).version
+        : (await updateVersion(policyId, versionId, buildPayload())).version;
 
       // Back to the policy, where the draft now appears in the version history
       // with "Continue draft" and "Discard draft" beside it. The notice is
@@ -173,8 +191,30 @@ const VersionEditor = () => {
     setError(null);
 
     try {
-      await uploadAttachment(policyId, versionId, file);
-      setNotice('PDF attached.');
+      // An attachment belongs to a version, so an unsaved draft has nothing to
+      // attach it TO. Rather than disabling the button - which left a control
+      // that did nothing and, being disabled, could not even show a tooltip
+      // saying why - the draft is created here and the file goes onto it.
+      let targetVersionId = versionId;
+
+      if (isNew) {
+        const created = await createVersion(policyId, buildPayload());
+        targetVersionId = created.version.id;
+      }
+
+      await uploadAttachment(policyId, targetVersionId, file);
+
+      if (isNew) {
+        // The page changes here, so it still says what happened. On an
+        // existing draft it does not: the file appears in the list below,
+        // which is the confirmation.
+        navigate(`/policies/${policyId}/versions/${targetVersionId}/edit`, {
+          replace: true,
+          state: { notice: 'Draft saved.' },
+        });
+        return;
+      }
+
       await load();
     } catch (uploadError) {
       setError(uploadError);
@@ -185,10 +225,10 @@ const VersionEditor = () => {
     }
   };
 
-  const removeAttachment = async () => {
+  const removeAttachment = async (attachmentId) => {
     setBusy(true);
     try {
-      await deleteAttachment(policyId, versionId);
+      await deleteAttachment(policyId, versionId, attachmentId);
       await load();
     } catch (removeError) {
       setError(removeError);
@@ -196,6 +236,13 @@ const VersionEditor = () => {
       setBusy(false);
     }
   };
+
+  // Bytes are shown to the admin because the 10 MB cap is per file, and
+  // "why was that rejected" is easier to answer with the size on screen.
+  const formatBytes = (bytes) =>
+    bytes >= 1024 * 1024
+      ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+      : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 
   if (error && !policy) {
     return (
@@ -217,7 +264,9 @@ const VersionEditor = () => {
   // which is what made "Continue draft" look like a dead button.
   if (!policy || (!isNew && !existing)) return <Spinner label="Loading…" />;
 
-  const everyone = draft.targetRoles.length === 0 && draft.targetDepartments.length === 0;
+  // Drives the Select all / Clear label on each group.
+  const allRoles = draft.targetRoles.length === ALL_ROLE_VALUES.length;
+  const allDepartments = draft.targetDepartments.length === ALL_DEPARTMENT_VALUES.length;
 
   return (
     <div className="page page--narrow">
@@ -297,6 +346,12 @@ const VersionEditor = () => {
               disabled={!isDraft}
               onChange={(body) => setDraft({ ...draft, body })}
               placeholder={'## Purpose\n\nWhy this policy exists.\n\n## The rule\n\n- What people must do.'}
+              // The PDF belongs to the version, not to a position in the text,
+              // so the toolbar button opens the same file picker as the
+              // attachment panel below rather than inserting anything.
+              onAttach={() => fileInputRef.current?.click()}
+              attachLabel="Upload a PDF"
+              attachDisabled={attachedFiles.length >= MAX_ATTACHMENTS}
             />
           )}
           <small className="field__help">
@@ -305,24 +360,58 @@ const VersionEditor = () => {
           </small>
         </div>
 
-        <label className="field" htmlFor="v-note">
-          <span className="field__label">
-            What changed{changeNoteRequired ? '' : ' (optional for version 1)'}
-          </span>
-          <input
-            id="v-note"
-            className="field__input"
-            value={draft.changeNote}
-            disabled={!isDraft}
-            onChange={(event) => setDraft({ ...draft, changeNote: event.target.value })}
-            placeholder="Added USB storage restriction."
-          />
-          {changeNoteRequired && (
-            <small className="field__help">
-              Required from version 2 — staff being asked to re-acknowledge need to know why.
-            </small>
+        {/* Directly below the text, because the two together are the document:
+            the wording staff read on screen and the PDFs it comes from. The
+            toolbar's clip opens this same picker. */}
+        <div className="field attachment">
+          <span className="field__label">Upload PDF</span>
+
+          {attachedFiles.length > 0 ? (
+            <ul className="attachment__list">
+              {attachedFiles.map((file) => (
+                <li key={file.id} className="attachment__item">
+                  <a href={file.url} target="_blank" rel="noreferrer">
+                    {file.name}
+                  </a>
+                  <span className="attachment__size">{formatBytes(file.sizeBytes)}</span>
+                  {isDraft && (
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--sm"
+                      disabled={busy}
+                      onClick={() => removeAttachment(file.id)}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted attachment__current">No file attached.</p>
           )}
-        </label>
+
+          {isDraft && (
+            <>
+              <div className="attachment__actions">
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
+                  disabled={busy || attachedFiles.length >= MAX_ATTACHMENTS}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {attachedFiles.length > 0 ? 'Add another PDF…' : 'Choose a PDF…'}
+                </button>
+              </div>
+
+              <small className="field__help">
+                PDF only, up to 10 MB each, {MAX_ATTACHMENTS} files at most. Checked by contents,
+                not by name — a renamed file is rejected. Files can only be changed while this
+                version is a draft, because staff acknowledge the exact documents they were shown.
+              </small>
+            </>
+          )}
+        </div>
       </section>
 
       <section className="card">
@@ -333,7 +422,16 @@ const VersionEditor = () => {
         </p>
 
         <fieldset className="fieldset" disabled={!isDraft}>
-          <legend className="field__label">Roles</legend>
+          <div className="fieldset__head">
+            <legend className="field__label">Roles</legend>
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              onClick={() => setAll('targetRoles', ALL_ROLE_VALUES)}
+            >
+              {allRoles ? 'Clear' : 'Select all'}
+            </button>
+          </div>
           <div className="choice-row">
             {Object.values(ROLES).map((role) => (
               <label key={role} className="choice" htmlFor={`role-${role}`}>
@@ -350,7 +448,16 @@ const VersionEditor = () => {
         </fieldset>
 
         <fieldset className="fieldset" disabled={!isDraft}>
-          <legend className="field__label">Departments</legend>
+          <div className="fieldset__head">
+            <legend className="field__label">Departments</legend>
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              onClick={() => setAll('targetDepartments', ALL_DEPARTMENT_VALUES)}
+            >
+              {allDepartments ? 'Clear' : 'Select all'}
+            </button>
+          </div>
           <div className="choice-row">
             {Object.entries(DEPARTMENT_LABELS).map(([value, label]) => (
               <label key={value} className="choice" htmlFor={`dept-${value}`}>
@@ -366,15 +473,6 @@ const VersionEditor = () => {
           </div>
         </fieldset>
 
-        <p className={everyone ? 'audience-summary audience-summary--all' : 'audience-summary'}>
-          {everyone
-            ? 'Everyone in the business will be assigned this.'
-            : `Assigned to ${draft.targetRoles.length ? draft.targetRoles.map((r) => ROLE_LABELS[r]).join(' or ') : 'any role'} in ${
-                draft.targetDepartments.length
-                  ? draft.targetDepartments.map((d) => DEPARTMENT_LABELS[d]).join(' or ')
-                  : 'any department'
-              }.`}
-        </p>
 
         <label className="field" htmlFor="v-due">
           <span className="field__label">Days to read it</span>
@@ -391,46 +489,30 @@ const VersionEditor = () => {
         </label>
       </section>
 
-      {!isNew && (
-        <section className="card">
-          <h2>Signed PDF (optional)</h2>
-          {existing?.attachmentName ? (
-            <p>
-              <a href={existing.attachmentUrl} target="_blank" rel="noreferrer">
-                {existing.attachmentName}
-              </a>
-              {isDraft && (
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  disabled={busy}
-                  onClick={removeAttachment}
-                >
-                  Remove
-                </button>
-              )}
-            </p>
-          ) : (
-            <p className="muted">No file attached.</p>
-          )}
-
-          {isDraft && (
-            <label className="field" htmlFor="v-file">
-              <span className="field__label">Attach a PDF</span>
-              <input id="v-file" type="file" accept="application/pdf" disabled={busy} onChange={attach} />
-              <small className="field__help">
-                PDF only, up to 10 MB. The file is checked by its contents, not its name — a
-                renamed file will be rejected. It can only be attached while this version is a draft.
-              </small>
-            </label>
-          )}
-        </section>
+      {/* One file input for the whole screen, rendered whenever the version is
+          editable - including before it is saved, so the toolbar's attach
+          button always has something to open. Hidden because both the toolbar
+          button and the panel below trigger it. */}
+      {isDraft && (
+        <input
+          ref={fileInputRef}
+          type="file"
+          // Both forms: on Windows the MIME type alone can leave the file
+          // dialog showing nothing selectable, because it depends on a
+          // registry association that may be missing. The extension is what
+          // reliably filters.
+          accept=".pdf,application/pdf"
+          className="visually-hidden"
+          tabIndex={-1}
+          aria-hidden="true"
+          onChange={attach}
+        />
       )}
 
       {isDraft && (
         <section className="card">
           <div className="confirm-actions">
-            <button type="button" className="btn btn--ghost" disabled={!canSave || busy} onClick={save}>
+            <button type="button" className="btn btn--ghost" disabled={busy} onClick={save}>
               {busy ? 'Saving…' : 'Save draft'}
             </button>
 
@@ -438,7 +520,7 @@ const VersionEditor = () => {
               <button
                 type="button"
                 className="btn btn--primary"
-                disabled={!canSave || busy}
+                disabled={!hasContent || busy}
                 onClick={() => setConfirmingPublish(true)}
               >
                 Publish…
@@ -446,8 +528,13 @@ const VersionEditor = () => {
             )}
           </div>
 
-          {isNew && (
-            <p className="muted">Save the draft before you can publish it.</p>
+          {isNew && <p className="muted">Save the draft before you can publish it.</p>}
+
+          {!isNew && !hasContent && (
+            <p className="muted">
+              This version has nothing to read yet. Write the policy text, attach the signed PDF, or
+              both, before publishing.
+            </p>
           )}
 
           {confirmingPublish && (

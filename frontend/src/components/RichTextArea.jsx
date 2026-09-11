@@ -26,7 +26,23 @@ const LINE_PREFIXES = {
   numbered: '1. ',
 };
 
-const RichTextArea = ({ id, value, onChange, disabled, rows = 16, placeholder }) => {
+// Markdown has no alignment syntax, so this is a convention of our own:
+// a marker at the very start of a paragraph, understood by MarkdownText and
+// stripped before the text is shown. Left is the default and writes no marker,
+// which keeps ordinary paragraphs free of noise.
+const ALIGN_MARKER = /^::(left|center|right)::\s*/;
+
+const RichTextArea = ({
+  id,
+  value,
+  onChange,
+  disabled,
+  rows = 16,
+  placeholder,
+  onAttach,
+  attachLabel = 'Attach a PDF',
+  attachDisabled = false,
+}) => {
   const ref = useRef(null);
 
   const apply = (mutate) => {
@@ -83,13 +99,34 @@ const RichTextArea = ({ id, value, onChange, disabled, rows = 16, placeholder })
       return { text: next, start: lineStart, end: lineStart + rewritten.length };
     });
 
-  const button = (label, title, onClick, className = '') => (
+  // Alignment belongs to the whole paragraph, not to a line or a selection, so
+  // this walks back to the start of the block the cursor sits in and rewrites
+  // the marker there. Any existing marker is replaced rather than stacked.
+  const align = (which) =>
+    apply((text, from) => {
+      const blankBefore = text.lastIndexOf('\n\n', Math.max(0, from - 1));
+      const blockStart = blankBefore === -1 ? 0 : blankBefore + 2;
+
+      const lineEnd = text.indexOf('\n', blockStart) === -1 ? text.length : text.indexOf('\n', blockStart);
+      const firstLine = text.slice(blockStart, lineEnd);
+      const bare = firstLine.replace(ALIGN_MARKER, '');
+
+      const marker = which === 'left' ? '' : `::${which}:: `;
+      const rewritten = `${marker}${bare}`;
+
+      const next = `${text.slice(0, blockStart)}${rewritten}${text.slice(lineEnd)}`;
+      const caret = blockStart + rewritten.length;
+
+      return { text: next, start: caret, end: caret };
+    });
+
+  const button = (label, title, onClick, { className = '', isDisabled = false } = {}) => (
     <button
       type="button"
       className={`toolbar__btn ${className}`}
       title={title}
       aria-label={title}
-      disabled={disabled}
+      disabled={disabled || isDisabled}
       onClick={onClick}
     >
       {label}
@@ -99,17 +136,40 @@ const RichTextArea = ({ id, value, onChange, disabled, rows = 16, placeholder })
   return (
     <div className="editor">
       <div className="toolbar" role="toolbar" aria-label="Text formatting">
-        {button('B', 'Bold', () => wrap('bold'), 'toolbar__btn--bold')}
-        {button('I', 'Italic', () => wrap('italic'), 'toolbar__btn--italic')}
-        {button('U', 'Underline', () => wrap('underline'), 'toolbar__btn--underline')}
+        {button('B', 'Bold', () => wrap('bold'), { className: 'toolbar__btn--bold' })}
+        {button('I', 'Italic', () => wrap('italic'), { className: 'toolbar__btn--italic' })}
+        {button('U', 'Underline', () => wrap('underline'), { className: 'toolbar__btn--underline' })}
         <span className="toolbar__divider" aria-hidden="true" />
+
         {button('H2', 'Heading', () => prefixLines('h2'))}
         {button('H3', 'Sub-heading', () => prefixLines('h3'))}
         <span className="toolbar__divider" aria-hidden="true" />
+
         {button('• List', 'Bulleted list', () => prefixLines('bullet'))}
         {button('1. List', 'Numbered list', () => prefixLines('numbered'))}
         <span className="toolbar__divider" aria-hidden="true" />
+
+        {/* Alignment applies to the paragraph the cursor is in. */}
+        {button('≡', 'Align left', () => align('left'), { className: 'toolbar__btn--align-left' })}
+        {button('≡', 'Align centre', () => align('center'), {
+          className: 'toolbar__btn--align-center',
+        })}
+        {button('≡', 'Align right', () => align('right'), {
+          className: 'toolbar__btn--align-right',
+        })}
+        <span className="toolbar__divider" aria-hidden="true" />
+
         {button('</>', 'Code', () => wrap('code'))}
+
+        {onAttach && (
+          <>
+            <span className="toolbar__divider" aria-hidden="true" />
+            {button('📎 PDF', attachLabel, onAttach, {
+              className: 'toolbar__btn--attach',
+              isDisabled: attachDisabled,
+            })}
+          </>
+        )}
       </div>
 
       <textarea

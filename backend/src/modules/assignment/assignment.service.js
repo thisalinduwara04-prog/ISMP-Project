@@ -60,6 +60,7 @@ const { audienceUserFilter } = require('../../utils/audience');
 const {
   ASSIGNMENT_STATUS,
   ASSIGNMENT_SOURCE,
+  OPEN_ASSIGNMENT_STATUSES,
   ASSIGNMENT_ITEM_TYPE,
 } = require('../../constants/assignments');
 
@@ -225,12 +226,19 @@ const complete = async ({
  * @param {Object} params
  * @param {'POLICY'|'TRAINING'} params.itemType
  * @param {import('mongoose').Types.ObjectId} params.itemId  the OLD policyVersionId / moduleId
+ * @param {boolean} [params.includeCompleted=true] also retire completed rows when an item is replaced
  * @param {import('mongoose').ClientSession} [params.session]
  * @returns {Promise<{supersededCount: number}>}
  */
-const supersede = async ({ itemType, itemId, session = null } = {}) => {
+const supersede = async ({ itemType, itemId, includeCompleted = true, session = null } = {}) => {
   const result = await Assignment.updateMany(
-    { itemType, itemId, status: { $ne: ASSIGNMENT_STATUS.SUPERSEDED } },
+    {
+      itemType,
+      itemId,
+      status: includeCompleted
+        ? { $ne: ASSIGNMENT_STATUS.SUPERSEDED }
+        : { $in: OPEN_ASSIGNMENT_STATUSES },
+    },
     { $set: { status: ASSIGNMENT_STATUS.SUPERSEDED } },
     { session }
   );
@@ -267,7 +275,7 @@ const updateProgress = async ({
   moduleId,
   completedItemId,
   totalItems,
-  session,
+  session = null,
 } = {}) => {
   AppAssert(
     Number.isInteger(totalItems) && totalItems > 0,
@@ -281,28 +289,45 @@ const updateProgress = async ({
     itemType: ASSIGNMENT_ITEM_TYPE.TRAINING,
     itemId: moduleId,
     status: { $ne: ASSIGNMENT_STATUS.SUPERSEDED },
-  }).session(session || null);
+  }).session(session);
 
   AppAssert(
     assignment,
     NOT_FOUND,
-    'Training assignment not found.',
-    AppErrorCode.ASSIGNMENT_NOT_FOUND
+    'This training module has not been assigned to you.',
+    AppErrorCode.NOT_FOUND
   );
 
+  // Idempotent by construction: a Set, not a push. Marking the same item
+  // complete twice - a double tap, a retried request - leaves one entry.
   const completed = new Set(assignment.progress?.completedItemIds || []);
   completed.add(completedItemId);
   const completedItemIds = [...completed];
-  const percentComplete = Math.min(100, Math.round((completedItemIds.length / totalItems) * 100));
+
+  // Capped at 100 because the two numbers can disagree: an admin who removes a
+  // content item leaves progress records naming an item that is gone, and 5 of
+  // 4 items must not read as 125% complete.
+  const percentComplete =
+    totalItems > 0 ? Math.min(100, Math.round((completedItemIds.length / totalItems) * 100)) : 0;
 
   assignment.progress = { completedItemIds, percentComplete };
-  if (!assignment.startedAt) assignment.startedAt = new Date();
+
+  // First item done: PENDING becomes IN_PROGRESS. OVERDUE deliberately does
+  // NOT - someone starting work that is already late is still late, and moving
+  // it would quietly remove them from the figures a manager chases.
   if (assignment.status === ASSIGNMENT_STATUS.PENDING) {
     assignment.status = ASSIGNMENT_STATUS.IN_PROGRESS;
   }
+  if (!assignment.startedAt) assignment.startedAt = new Date();
+
   await assignment.save({ session });
 
-  return { completedItemIds, percentComplete, status: assignment.status };
+  return {
+    completedItemIds,
+    percentComplete,
+    status: assignment.status,
+    startedAt: assignment.startedAt,
+  };
 };
 
 // M4 refresh hooks for the denormalised dashboard/report fields (risk R-03).
