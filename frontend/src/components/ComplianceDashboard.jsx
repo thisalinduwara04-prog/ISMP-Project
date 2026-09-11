@@ -28,6 +28,39 @@ const emptyFilters = (department = '') => ({
   to: '',
 });
 
+const selectionText = (selected, options, allLabel) => {
+  if (selected.length === options.length) return allLabel;
+  const labels = options.filter(({ value }) => selected.includes(value)).map(({ label }) => label);
+  return labels.length === 1 ? labels[0] : `${labels.length} selected`;
+};
+
+const CheckboxDropdown = ({ label, selected, options, allLabel, onToggle }) => (
+  <div className="field">
+    <span className="field__label">{label}</span>
+    <details className="check-dropdown" name="compliance-filter-dropdown">
+      <summary
+        className="field__input check-dropdown__summary"
+        aria-label={`${label}: ${selectionText(selected, options, allLabel)}`}
+      >
+        <span>{selectionText(selected, options, allLabel)}</span>
+      </summary>
+      <div className="check-dropdown__menu" role="group" aria-label={label}>
+        {options.map((option) => (
+          <label className="filter-check" key={option.value}>
+            <input
+              type="checkbox"
+              checked={selected.includes(option.value)}
+              disabled={selected.length === 1 && selected.includes(option.value)}
+              onChange={() => onToggle(option.value)}
+            />
+            <span>{option.label}</span>
+          </label>
+        ))}
+      </div>
+    </details>
+  </div>
+);
+
 const ComplianceDashboard = ({ fixedDepartment = null, allowOrganisation = false }) => {
   const [filters, setFilters] = useState(() => emptyFilters(fixedDepartment || ''));
   const [appliedFilters, setAppliedFilters] = useState(() => emptyFilters(fixedDepartment || ''));
@@ -138,7 +171,11 @@ const ComplianceDashboard = ({ fixedDepartment = null, allowOrganisation = false
 
       <form
         className="card filters"
-        onSubmit={(event) => { event.preventDefault(); setAppliedFilters(filters); }}
+        onSubmit={(event) => {
+          event.preventDefault();
+          event.currentTarget.querySelectorAll('details[open]').forEach((dropdown) => dropdown.removeAttribute('open'));
+          setAppliedFilters(filters);
+        }}
       >
         {allowOrganisation && (
           <label className="field">
@@ -149,36 +186,20 @@ const ComplianceDashboard = ({ fixedDepartment = null, allowOrganisation = false
             </select>
           </label>
         )}
-        <fieldset className="filter-group">
-          <legend className="field__label">Item type</legend>
-          <div className="filter-options">
-            {ITEM_TYPES.map((option) => (
-              <label className="filter-check" key={option.value}>
-                <input
-                  type="checkbox"
-                  checked={filters.itemType.includes(option.value)}
-                  onChange={() => toggleFilterOption('itemType', option.value)}
-                />
-                <span>{option.label}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        <fieldset className="filter-group filter-group--status">
-          <legend className="field__label">Status</legend>
-          <div className="filter-options filter-options--status">
-            {STATUSES.map((option) => (
-              <label className="filter-check" key={option.value}>
-                <input
-                  type="checkbox"
-                  checked={filters.status.includes(option.value)}
-                  onChange={() => toggleFilterOption('status', option.value)}
-                />
-                <span>{option.label}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        <CheckboxDropdown
+          label="Item type"
+          selected={filters.itemType}
+          options={ITEM_TYPES}
+          allLabel="Policies and training"
+          onToggle={(value) => toggleFilterOption('itemType', value)}
+        />
+        <CheckboxDropdown
+          label="Status"
+          selected={filters.status}
+          options={STATUSES}
+          allLabel="All live statuses"
+          onToggle={(value) => toggleFilterOption('status', value)}
+        />
         <label className="field">
           <span className="field__label">Assigned from</span>
           <input className="field__input" type="date" name="from" value={filters.from} onChange={updateFilter} />
@@ -189,10 +210,11 @@ const ComplianceDashboard = ({ fixedDepartment = null, allowOrganisation = false
         </label>
         <div className="filters__actions">
           <button className="btn btn--primary" type="submit" disabled={busy}>Apply filters</button>
-          <button className="btn btn--ghost" type="button" onClick={() => {
+          <button className="btn btn--ghost" type="button" onClick={(event) => {
             const reset = emptyFilters(fixedDepartment || '');
             setFilters(reset);
             setAppliedFilters(reset);
+            event.currentTarget.form.querySelectorAll('details[open]').forEach((dropdown) => dropdown.removeAttribute('open'));
           }}>Reset</button>
         </div>
       </form>
