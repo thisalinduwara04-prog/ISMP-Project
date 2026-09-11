@@ -1,7 +1,10 @@
 import client, { unwrap } from './client';
 
 const compactParams = (values) => Object.fromEntries(
-  Object.entries(values || {}).filter(([, value]) => value !== '' && value !== undefined && value !== null)
+  Object.entries(values || {})
+    .filter(([, value]) => value !== '' && value !== undefined && value !== null)
+    .map(([key, value]) => [key, Array.isArray(value) ? value.join(',') : value])
+    .filter(([, value]) => value !== '')
 );
 
 export const getMyCompliance = () => unwrap(client.get('/compliance/me'));

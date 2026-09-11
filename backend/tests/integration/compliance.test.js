@@ -109,6 +109,32 @@ describe('M4 compliance tracking and reporting', () => {
     expect(response.body.data.departments.reduce((sum, row) => sum + row.total, 0)).toBe(4);
   });
 
+  test('dashboard accepts multiple item types and statuses from checkbox filters', async () => {
+    const manager = await createUser({
+      role: ROLES.MANAGER,
+      employeeId: 'SVK-1601',
+      email: 'manager16@savikro.test',
+    });
+    const employee = await createUser({ employeeId: 'SVK-1602', email: 'employee16@savikro.test' });
+    await addAssignment(employee, { itemType: 'POLICY', status: 'PENDING' });
+    await addAssignment(employee, { itemType: 'POLICY', status: 'COMPLETED' });
+    await addAssignment(employee, { itemType: 'TRAINING', status: 'OVERDUE' });
+
+    const combined = await request(app)
+      .get('/api/v1/compliance/dashboard?itemType=POLICY,TRAINING&status=PENDING,OVERDUE')
+      .set(auth(manager));
+
+    expect(combined.status).toBe(200);
+    expect(combined.body.data.summary).toMatchObject({ total: 2, completed: 0, overdue: 1 });
+
+    const policies = await request(app)
+      .get('/api/v1/compliance/dashboard?itemType=POLICY&status=PENDING,COMPLETED')
+      .set(auth(manager));
+
+    expect(policies.status).toBe(200);
+    expect(policies.body.data.summary).toMatchObject({ total: 2, completed: 1, overdue: 0 });
+  });
+
   test('employee cannot open privileged dashboard', async () => {
     const employee = await createUser();
     const response = await request(app).get('/api/v1/compliance/dashboard').set(auth(employee));

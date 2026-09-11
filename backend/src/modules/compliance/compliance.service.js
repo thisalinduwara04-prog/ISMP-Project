@@ -45,8 +45,8 @@ const buildMatch = (scope, filters = {}) => {
   const match = { status: { $ne: Assignment.ASSIGNMENT_STATUS.SUPERSEDED } };
   applyScope(match, scope);
   if (filters.department && scope.level === SCOPE.ORGANISATION) match.department = filters.department;
-  if (filters.itemType) match.itemType = filters.itemType;
-  if (filters.status) match.status = filters.status;
+  if (filters.itemType) match.itemType = { $in: filters.itemType };
+  if (filters.status) match.status = { $in: filters.status };
   if (filters.from || filters.to) {
     match.assignedAt = {};
     if (filters.from) match.assignedAt.$gte = new Date(filters.from);
@@ -140,13 +140,20 @@ const getPersonalCompliance = async (userId) => {
 };
 
 const getOutstanding = async (scope, filters = {}, page = 1, pageSize = 20) => {
-  if (filters.status === Assignment.ASSIGNMENT_STATUS.COMPLETED) {
+  const openStatuses = [
+    Assignment.ASSIGNMENT_STATUS.PENDING,
+    Assignment.ASSIGNMENT_STATUS.IN_PROGRESS,
+    Assignment.ASSIGNMENT_STATUS.OVERDUE,
+  ];
+  const selectedOpenStatuses = filters.status
+    ? filters.status.filter((status) => openStatuses.includes(status))
+    : openStatuses;
+
+  if (!selectedOpenStatuses.length) {
     return { items: [], page, pageSize, total: 0 };
   }
   const match = buildMatch(scope, filters);
-  match.status = filters.status
-    ? filters.status
-    : { $in: [Assignment.ASSIGNMENT_STATUS.PENDING, Assignment.ASSIGNMENT_STATUS.IN_PROGRESS, Assignment.ASSIGNMENT_STATUS.OVERDUE] };
+  match.status = { $in: selectedOpenStatuses };
 
   const grouped = await Assignment.aggregate([
     { $match: match },

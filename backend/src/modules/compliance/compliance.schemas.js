@@ -7,10 +7,15 @@ const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD.');
 const liveStatuses = Object.values(Assignment.ASSIGNMENT_STATUS)
   .filter((status) => status !== Assignment.ASSIGNMENT_STATUS.SUPERSEDED);
 
+const multiValueEnum = (values) => z.preprocess(
+  (value) => (Array.isArray(value) ? value : String(value).split(',')),
+  z.array(z.enum(values)).min(1).transform((items) => [...new Set(items)])
+).optional();
+
 const filterFields = {
   department: z.enum(ALL_DEPARTMENTS).optional(),
-  itemType: z.enum(Object.values(Assignment.ITEM_TYPE)).optional(),
-  status: z.enum(liveStatuses).optional(),
+  itemType: multiValueEnum(Object.values(Assignment.ITEM_TYPE)),
+  status: multiValueEnum(liveStatuses),
   from: isoDate.optional(),
   to: isoDate.optional(),
 };

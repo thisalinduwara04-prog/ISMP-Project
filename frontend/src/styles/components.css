@@ -306,6 +306,45 @@
 .filters .field { margin: 0; }
 .filters__actions, .button-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 
+.filter-group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.filter-options {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.45rem;
+}
+
+.filter-options--status {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.filter-check {
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: center;
+  min-height: 28px;
+  color: var(--ink);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.filter-check input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: var(--brand);
+}
+
+.filter-check input:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+
 .section-heading { display: flex; justify-content: space-between; align-items: start; gap: 1rem; margin-bottom: 1rem; }
 .section-heading p { margin: 0; }
 .chart { width: 100%; height: 280px; }

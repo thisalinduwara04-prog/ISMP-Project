@@ -8,11 +8,29 @@ import { DEPARTMENT_LABELS } from '../constants';
 import { exportCompliance, getDashboard, getOutstanding, sendReminder } from '../api/compliance';
 import { stepUp } from '../api/auth';
 
-const EMPTY_FILTERS = { department: '', itemType: '', status: '', from: '', to: '' };
+const ITEM_TYPES = [
+  { value: 'POLICY', label: 'Policies' },
+  { value: 'TRAINING', label: 'Training' },
+];
+
+const STATUSES = [
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'IN_PROGRESS', label: 'In progress' },
+  { value: 'COMPLETED', label: 'Completed' },
+  { value: 'OVERDUE', label: 'Overdue' },
+];
+
+const emptyFilters = (department = '') => ({
+  department,
+  itemType: ITEM_TYPES.map(({ value }) => value),
+  status: STATUSES.map(({ value }) => value),
+  from: '',
+  to: '',
+});
 
 const ComplianceDashboard = ({ fixedDepartment = null, allowOrganisation = false }) => {
-  const [filters, setFilters] = useState({ ...EMPTY_FILTERS, department: fixedDepartment || '' });
-  const [appliedFilters, setAppliedFilters] = useState({ ...EMPTY_FILTERS, department: fixedDepartment || '' });
+  const [filters, setFilters] = useState(() => emptyFilters(fixedDepartment || ''));
+  const [appliedFilters, setAppliedFilters] = useState(() => emptyFilters(fixedDepartment || ''));
   const [dashboard, setDashboard] = useState(null);
   const [outstanding, setOutstanding] = useState(null);
   const [error, setError] = useState('');
@@ -43,6 +61,20 @@ const ComplianceDashboard = ({ fixedDepartment = null, allowOrganisation = false
   useEffect(() => { load(); }, [load]);
 
   const updateFilter = (event) => setFilters((current) => ({ ...current, [event.target.name]: event.target.value }));
+
+  const toggleFilterOption = (name, value) => {
+    setFilters((current) => {
+      const selected = current[name];
+      const next = selected.includes(value)
+        ? selected.filter((option) => option !== value)
+        : [...selected, value];
+
+      // A filter group always represents at least one choice. This lets users
+      // select either item type/status or any combination without an ambiguous
+      // empty selection.
+      return next.length ? { ...current, [name]: next } : current;
+    });
+  };
 
   const remind = async (row) => {
     setAction(`remind-${row._id}`);
@@ -117,24 +149,36 @@ const ComplianceDashboard = ({ fixedDepartment = null, allowOrganisation = false
             </select>
           </label>
         )}
-        <label className="field">
-          <span className="field__label">Item type</span>
-          <select className="field__input" name="itemType" value={filters.itemType} onChange={updateFilter}>
-            <option value="">Policies and training</option>
-            <option value="POLICY">Policy</option>
-            <option value="TRAINING">Training</option>
-          </select>
-        </label>
-        <label className="field">
-          <span className="field__label">Status</span>
-          <select className="field__input" name="status" value={filters.status} onChange={updateFilter}>
-            <option value="">All live statuses</option>
-            <option value="PENDING">Pending</option>
-            <option value="IN_PROGRESS">In progress</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="OVERDUE">Overdue</option>
-          </select>
-        </label>
+        <fieldset className="filter-group">
+          <legend className="field__label">Item type</legend>
+          <div className="filter-options">
+            {ITEM_TYPES.map((option) => (
+              <label className="filter-check" key={option.value}>
+                <input
+                  type="checkbox"
+                  checked={filters.itemType.includes(option.value)}
+                  onChange={() => toggleFilterOption('itemType', option.value)}
+                />
+                <span>{option.label}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <fieldset className="filter-group filter-group--status">
+          <legend className="field__label">Status</legend>
+          <div className="filter-options filter-options--status">
+            {STATUSES.map((option) => (
+              <label className="filter-check" key={option.value}>
+                <input
+                  type="checkbox"
+                  checked={filters.status.includes(option.value)}
+                  onChange={() => toggleFilterOption('status', option.value)}
+                />
+                <span>{option.label}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
         <label className="field">
           <span className="field__label">Assigned from</span>
           <input className="field__input" type="date" name="from" value={filters.from} onChange={updateFilter} />
@@ -146,7 +190,7 @@ const ComplianceDashboard = ({ fixedDepartment = null, allowOrganisation = false
         <div className="filters__actions">
           <button className="btn btn--primary" type="submit" disabled={busy}>Apply filters</button>
           <button className="btn btn--ghost" type="button" onClick={() => {
-            const reset = { ...EMPTY_FILTERS, department: fixedDepartment || '' };
+            const reset = emptyFilters(fixedDepartment || '');
             setFilters(reset);
             setAppliedFilters(reset);
           }}>Reset</button>
