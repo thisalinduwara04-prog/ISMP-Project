@@ -36,6 +36,7 @@ const createApp = () => {
   app.use(`${API_PREFIX}/auth`, require('./modules/auth/auth.routes'));
   app.use(`${API_PREFIX}/policies`, require('./modules/policy/policy.routes'));
   app.use(`${API_PREFIX}/training`, require('./modules/training/training.routes'));
+  app.use(`${API_PREFIX}/incidents`, require('./modules/incidents/incident.routes'));
   /* eslint-enable global-require */
 
   // Guarded probe routes exist only under NODE_ENV=test. They give the RBAC

@@ -6,6 +6,7 @@ const {
   BAD_REQUEST,
   CONFLICT,
   NOT_FOUND,
+  PAYLOAD_TOO_LARGE,
   INTERNAL_SERVER_ERROR,
 } = require('../constants/http');
 
@@ -45,6 +46,32 @@ const errorHandler = (err, req, res, next) => {
     return res
       .status(err.statusCode)
       .json(buildEnvelope(requestId, err.errorCode, err.message, err.details));
+  }
+
+  // Multer rejects an oversized upload with its own error class rather than
+  // anything this app throws, so it is translated here into the spec's 413
+  // (section 8.9, UC-22 alternate flow 3a).
+  if (err && err.name === 'MulterError') {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res
+        .status(PAYLOAD_TOO_LARGE)
+        .json(
+          buildEnvelope(
+            requestId,
+            AppErrorCode.FILE_TOO_LARGE,
+            `That file is too large. The limit is ${env.MAX_UPLOAD_MB} MB.`,
+            [{ field: err.field || 'attachment', issue: 'too_large' }]
+          )
+        );
+    }
+
+    return res
+      .status(BAD_REQUEST)
+      .json(
+        buildEnvelope(requestId, AppErrorCode.VALIDATION_ERROR, 'That upload could not be accepted.', [
+          { field: err.field || 'attachment', issue: err.code },
+        ])
+      );
   }
 
   // Mongoose duplicate key. The offending field name is safe to reveal; the
