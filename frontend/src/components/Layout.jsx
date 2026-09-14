@@ -47,11 +47,6 @@ const Layout = () => {
                 {ROLE_LABELS[user.role]} · {DEPARTMENT_LABELS[user.department]}
               </small>
             </div>
-            {/* UC-22: reporting must be one tap from anywhere, so it sits in the
-                header on every screen rather than behind a menu. */}
-            <Link to="/incidents/new" className="btn btn--primary btn--sm">
-              Report an incident
-            </Link>
             <Link to="/change-password" className="btn btn--ghost btn--sm">
               Password
             </Link>
