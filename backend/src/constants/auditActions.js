@@ -1,5 +1,6 @@
 // Actions recorded in the append-only `auditLogs` collection (spec section 7.14).
-// Modules add their own entries as they land.
+// Modules add their own entries as they land; the exact strings are a shared
+// contract, because M4's audit browser filters on them (T0).
 //
 // IMPORTANT: `AuditLog.action` is `enum: Object.values(AUDIT_ACTIONS)` and
 // `audit.record()` deliberately swallows its own failures so a logging problem
@@ -18,6 +19,50 @@ const AUDIT_ACTIONS = Object.freeze({
   AUTH_PASSWORD_CHANGED: 'AUTH_PASSWORD_CHANGED',
   RBAC_DENIED: 'RBAC_DENIED',
   RBAC_SCOPE_VIOLATION: 'RBAC_SCOPE_VIOLATION',
+  // Distinct from RBAC_SCOPE_VIOLATION, which is a manager reaching for
+  // another department's reports. This is someone asking for a policy version
+  // they were not targeted by - worth its own filter when reviewing whether an
+  // account is probing for documents it should not see (NFR-SEC-06).
+  RBAC_SCOPE_VIEW_DENIED: 'RBAC_SCOPE_VIEW_DENIED',
+
+  // M2 - Policy management
+  POLICY_PUBLISHED: 'POLICY_PUBLISHED',
+  POLICY_VIEWED: 'POLICY_VIEWED',
+  POLICY_ACKNOWLEDGED: 'POLICY_ACKNOWLEDGED',
+  POLICY_UPDATED: 'POLICY_UPDATED',
+  POLICY_ARCHIVED: 'POLICY_ARCHIVED',
+  POLICY_RESTORED: 'POLICY_RESTORED',
+  // Only ever a DRAFT. A published version cannot be deleted by anyone, so
+  // this action can never describe the loss of something acknowledged.
+  POLICY_DRAFT_DELETED: 'POLICY_DRAFT_DELETED',
+  // A version that had been published. Separate from the draft action because
+  // this one can destroy acknowledgements, and the two deserve to be
+  // distinguishable when reviewing the log.
+  POLICY_VERSION_DELETED: 'POLICY_VERSION_DELETED',
+  // Permanent removal of a policy and everything attached to it. The audit
+  // entry is all that survives, which is precisely why it records the counts.
+  POLICY_DELETED: 'POLICY_DELETED',
+  POLICY_ATTACHMENT_ADDED: 'POLICY_ATTACHMENT_ADDED',
+  // Who inspected whose compliance evidence, and when. An audit trail that
+  // nobody can audit is only half a control (UC-12).
+  COMPLIANCE_AUDIT_VIEWED: 'COMPLIANCE_AUDIT_VIEWED',
+
+  // M3 - Training & awareness
+  TRAINING_MODULE_CREATED: 'TRAINING_MODULE_CREATED',
+  // Covers content and quiz edits alike. The metadata says which of the two
+  // changed, because editing a live quiz is the one that needs explaining
+  // afterwards.
+  TRAINING_MODULE_UPDATED: 'TRAINING_MODULE_UPDATED',
+  // Permanent removal of a module and everything recorded against it. The
+  // audit entry is all that survives, which is exactly why it records the
+  // counts of what went with it.
+  TRAINING_MODULE_DELETED: 'TRAINING_MODULE_DELETED',
+  TRAINING_PUBLISHED: 'TRAINING_PUBLISHED',
+  QUIZ_SUBMITTED: 'QUIZ_SUBMITTED',
+  // An admin giving somebody their attempts back. The entry records who
+  // authorised it, and is also what the count is measured from afterwards -
+  // the historical attempts are never deleted (UC-17).
+  QUIZ_ATTEMPTS_RESET: 'QUIZ_ATTEMPTS_RESET',
 
   // M5 - Incident reporting
   INCIDENT_SUBMITTED: 'INCIDENT_SUBMITTED',

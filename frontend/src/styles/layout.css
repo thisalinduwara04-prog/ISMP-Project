@@ -142,6 +142,13 @@
   margin-bottom: 0.25rem;
 }
 
+/* A back button sitting above the title needs air under it, or the two read as
+   one stacked block. Applies wherever the pattern is used - the module builder,
+   the player, the version editor - so they all look the same. */
+.page__header .btn {
+  margin-bottom: 0.5rem;
+}
+
 .page__header p {
   margin: 0;
   color: var(--ink-soft);
@@ -162,4 +169,10 @@
   display: grid;
   gap: 1rem;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+/* Forms and long-form editing read better at a narrower measure than the
+   dashboards the default page width is sized for. */
+.page--narrow {
+  max-width: 46rem;
 }

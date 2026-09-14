@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom';
 
+import MyPolicies from '../../components/MyPolicies';
+import MyTraining from '../../components/MyTraining';
 import { useAuth } from '../../auth/AuthContext';
 import { DEPARTMENT_LABELS } from '../../constants';
 
-// Landing page for EMPLOYEE (UC-02 step 8). The task list itself arrives with
-// M2-M4; this slice delivers the authenticated shell it will live in.
+// Landing page for EMPLOYEE (UC-02 step 8). Policies land here with M2,
+// training with M3; the personal compliance percentage arrives with M4.
 const MyTasks = () => {
   const { user, capabilities } = useAuth();
 
@@ -17,13 +19,9 @@ const MyTasks = () => {
         </p>
       </header>
 
-      <section className="card">
-        <h2>Nothing assigned yet</h2>
-        <p className="muted">
-          Policies to read and training to complete will appear here once an administrator publishes
-          them.
-        </p>
-      </section>
+      <MyPolicies heading="policies to read" />
+
+      <MyTraining />
 
       {/* M5. Sits above the capability list because reporting is the one thing
           on this screen an employee may need in a hurry. */}
