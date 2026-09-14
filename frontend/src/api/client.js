@@ -2,10 +2,14 @@ import axios from 'axios';
 
 // Both tokens are httpOnly cookies, so this client never reads, stores or
 // attaches a token. `withCredentials` is the whole of the auth wiring.
+// No global Content-Type default on purpose. Axios already sets
+// `application/json` for a plain-object body, and a hard default here breaks
+// file uploads: a multipart request needs `multipart/form-data; boundary=…`
+// with the boundary the browser generates, and a default that has to be
+// deleted per-request is a trap the next person will fall into.
 const client = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api/v1',
   withCredentials: true,
-  headers: { 'Content-Type': 'application/json' },
 });
 
 // Endpoints that must never trigger a refresh attempt. Retrying a failed
