@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 
-import Layout from './components/Layout';
+import RoleLayout from './components/RoleLayout';
 import { ProtectedRoute, PublicOnlyRoute, RequireCapability } from './auth/guards';
 import { useAuth } from './auth/AuthContext';
 import { CAPABILITIES, homePathFor } from './constants';
@@ -44,7 +44,7 @@ const App = () => (
     </Route>
 
     <Route element={<ProtectedRoute />}>
-      <Route element={<Layout />}>
+      <Route element={<RoleLayout />}>
         <Route path="/" element={<RoleHome />} />
         <Route path="/change-password" element={<ChangePassword />} />
 
