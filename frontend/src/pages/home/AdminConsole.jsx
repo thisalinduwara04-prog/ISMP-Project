@@ -8,6 +8,7 @@ import { fetchAuditLogs } from '../../api/audit';
 import ActivityList from '../../components/ActivityList';
 import DepartmentBars from '../../components/DepartmentBars';
 import SeverityPie from '../../components/SeverityPie';
+import Spinner from '../../components/Spinner';
 import StatCard from '../../components/StatCard';
 
 // M1 admin dashboard.
@@ -116,7 +117,9 @@ const AdminConsole = () => {
         </div>
         {incidents.error
           ? <p className="muted">{incidents.error}</p>
-          : <SeverityPie counts={tallyBySeverity(recent)} />}
+          : !incidents.data
+            ? <Spinner label="Loading incidents…" />
+            : <SeverityPie counts={tallyBySeverity(recent)} />}
       </Link>
 
       <Link to="/compliance" className="widget admin-grid__half">
@@ -126,7 +129,9 @@ const AdminConsole = () => {
         </div>
         {compliance.error
           ? <p className="muted">{compliance.error}</p>
-          : <DepartmentBars departments={compliance.data?.departments || []} />}
+          : !compliance.data
+            ? <Spinner label="Loading compliance…" />
+            : <DepartmentBars departments={compliance.data.departments || []} />}
       </Link>
 
       <StatCard
@@ -145,7 +150,9 @@ const AdminConsole = () => {
         </div>
         {activity.error
           ? <p className="muted">{activity.error}</p>
-          : <ActivityList entries={activity.data?.entries || []} />}
+          : !activity.data
+            ? <Spinner label="Loading activity…" />
+            : <ActivityList entries={activity.data.entries || []} />}
       </Link>
     </div>
   );

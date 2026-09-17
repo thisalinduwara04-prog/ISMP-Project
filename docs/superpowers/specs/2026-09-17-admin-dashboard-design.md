@@ -203,7 +203,7 @@ unchanged.
 --admin-accent      #dff264   active nav pill, active page number
 --admin-accent-ink  #1b2007   text on the accent
 --admin-ink         #14161a   headings
---admin-ink-soft    #8a9099   secondary text
+--admin-ink-soft    #55606f   secondary text (AA on both canvas and surface)
 --admin-pill        999px     nav items, badges, pagination
 --admin-radius      20px      cards
 ```

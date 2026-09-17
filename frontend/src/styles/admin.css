@@ -1,9 +1,15 @@
 /* ---------------------------------------------------------------------------
    Administrator area - light, minimal, lime accent.
 
-   Everything here is scoped under `.admin-shell`, which only AdminLayout
-   renders. Employee and manager screens never match these selectors, so the
-   navy system in base.css is left exactly as it was.
+   The `.admin-shell` root and the `.admin-shell <selector>` overrides below
+   are scoped: only AdminLayout renders `.admin-shell`, so employee and
+   manager screens never match them and the navy system in base.css is left
+   exactly as it was. The widget classes (`.stat-card`, `.widget`, `.pie`,
+   `.dept-bar`, `.activity`, `.admin-grid*`, `.admin-nav*`) are NOT scoped -
+   they are plain global class names. They only avoid colliding because no
+   other stylesheet defines those names, and they only render correctly
+   inside `.admin-shell` because they consume tokens (--admin-ink-soft,
+   --admin-accent, etc.) defined on that root.
    --------------------------------------------------------------------------- */
 
 .admin-shell {
@@ -12,7 +18,7 @@
   --admin-accent: #dff264;
   --admin-accent-ink: #1b2007;
   --admin-ink: #14161a;
-  --admin-ink-soft: #8a9099;
+  --admin-ink-soft: #55606f;
   --admin-line: #e3e5e8;
   --admin-alert: #b3352e;
   --admin-alert-tint: #fdeeed;
@@ -160,6 +166,10 @@
 .stat-card--alert {
   background: var(--admin-alert-tint);
   box-shadow: inset 0 0 0 1px var(--admin-alert);
+}
+
+.stat-card--alert:hover {
+  box-shadow: inset 0 0 0 1px var(--admin-alert), 0 6px 20px rgba(20, 22, 26, 0.08);
 }
 
 .stat-card__label {
@@ -314,11 +324,20 @@
   box-shadow: none;
 }
 
-.admin-shell .table { border-radius: var(--admin-radius); }
+.admin-shell .table-wrap {
+  border-radius: var(--admin-radius);
+  border: 0;
+}
 
 .admin-shell .btn--primary {
   background: var(--admin-accent);
   border-color: var(--admin-accent);
+  color: var(--admin-accent-ink);
+}
+
+.admin-shell .btn--primary:hover:not(:disabled) {
+  background: #d2e650;
+  border-color: #d2e650;
   color: var(--admin-accent-ink);
 }
 
