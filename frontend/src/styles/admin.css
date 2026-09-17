@@ -425,3 +425,25 @@
   .admin-grid__three,
   .admin-grid__full { grid-column: 1 / -1; }
 }
+
+/* --- Roster rows and the summary panel -------------------------------------
+   The shared rule tints a hovered row with --brand-tint, which is a blue from
+   the employee theme. In here it becomes a lift in the same frosted white the
+   cards use, so nothing blue appears in the admin area.
+   --------------------------------------------------------------------------- */
+
+.admin-shell .table__row--clickable:hover {
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.admin-shell .link-quiet {
+  color: var(--admin-ink);
+}
+
+/* The panel stays opaque rather than frosted. It sits above a dimmed backdrop
+   and carries the most text of anything in the theme - blur behind it would
+   cost legibility for an effect nobody can see through the scrim anyway. */
+.admin-shell .modal__panel {
+  border-radius: var(--admin-radius);
+  background: #ffffff;
+}

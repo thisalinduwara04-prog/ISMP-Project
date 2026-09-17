@@ -2070,3 +2070,154 @@
 .filters input[type='date'] {
   min-height: var(--touch-target);
 }
+
+/* ---------------------------------------------------------------------------
+   Modal (Modal.jsx)
+
+   The panel transitions from slightly small and low to its resting position;
+   the backdrop fades. The 180ms here is the same number Modal.jsx waits before
+   unmounting - change one and change the other, or the panel will vanish
+   mid-animation.
+
+   base.css already reduces every transition to near-zero under
+   prefers-reduced-motion, so no separate rule is needed here.
+   --------------------------------------------------------------------------- */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(16, 21, 28, 0);
+  transition: background 180ms ease;
+}
+
+.modal--shown {
+  background: rgba(16, 21, 28, 0.42);
+}
+
+.modal__panel {
+  width: min(34rem, 100%);
+  max-height: min(85vh, 44rem);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: 0 24px 60px rgba(16, 21, 28, 0.24);
+  opacity: 0;
+  transform: translateY(10px) scale(0.97);
+  transition: opacity 180ms ease, transform 180ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.modal--shown .modal__panel {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* The panel takes focus on open so the keyboard starts inside it, but it is a
+   container rather than a control - it should not draw a focus ring. Everything
+   inside it keeps its own. */
+.modal__panel:focus { outline: none; }
+
+.modal__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.25rem 0.75rem;
+}
+
+.modal__title {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.modal__subtitle {
+  margin: 0.125rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+.modal__close {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.modal__close:hover {
+  background: var(--canvas);
+  color: var(--ink);
+}
+
+.modal__body {
+  padding: 0 1.25rem 1.25rem;
+  overflow-y: auto;
+}
+
+.modal__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.875rem 1.25rem;
+  border-top: 1px solid var(--line);
+}
+
+/* --- Detail list, used for the modal's field/value pairs --------------------- */
+
+.detail-list {
+  display: grid;
+  grid-template-columns: 10rem 1fr;
+  gap: 0.5rem 1rem;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.detail-list dt {
+  color: var(--ink-soft);
+}
+
+.detail-list dd {
+  margin: 0;
+}
+
+@media (max-width: 30rem) {
+  .detail-list {
+    grid-template-columns: 1fr;
+    gap: 0.125rem;
+  }
+
+  .detail-list dd { margin-bottom: 0.5rem; }
+}
+
+/* --- A name that opens something, without looking like a navigation link -----
+   Used for the employee name in the roster: it opens the summary panel rather
+   than navigating, so it takes the body colour and underlines only on hover
+   instead of wearing the browser's link blue.
+   --------------------------------------------------------------------------- */
+
+.link-quiet {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.link-quiet:hover {
+  text-decoration: underline;
+}

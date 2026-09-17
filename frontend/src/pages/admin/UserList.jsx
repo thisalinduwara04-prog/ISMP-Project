@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 
 import Alert from '../../components/Alert';
 import Badge from '../../components/Badge';
+import Modal from '../../components/Modal';
 import Spinner from '../../components/Spinner';
 import { useAuth } from '../../auth/AuthContext';
 import { fetchUsers, updateUser } from '../../api/users';
@@ -64,6 +65,21 @@ const UserList = () => {
   // ids rather than booleans so two rows cannot appear busy at once.
   const [pendingId, setPendingId] = useState(null);
   const [rowError, setRowError] = useState(null);
+  // The account whose summary panel is open. Held as the whole row rather than
+  // an id: the list already carries every field the panel shows, so opening it
+  // costs no request and the panel appears instantly.
+  //
+  // Kept after closing (see `closeSummary`) so the details do not blank out
+  // while the modal animates away.
+  const [summaryUser, setSummaryUser] = useState(null);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+
+  const openSummary = (user) => {
+    setSummaryUser(user);
+    setSummaryOpen(true);
+  };
+
+  const closeSummary = () => setSummaryOpen(false);
 
   const retry = () => setReloadKey((current) => current + 1);
 
@@ -271,9 +287,26 @@ const UserList = () => {
                     const busy = pendingId === user.id;
 
                     return (
-                      <tr key={user.id}>
+                      <tr
+                        key={user.id}
+                        className="table__row--clickable"
+                        onClick={() => openSummary(user)}
+                      >
                         <td>
-                          <Link to={`/admin/users/${user.id}`}>{user.fullName}</Link>
+                          {/* A button, not a link: it opens the summary rather
+                              than navigating, and it is what makes the row
+                              reachable from the keyboard - the row's own click
+                              handler is a mouse shortcut only. */}
+                          <button
+                            type="button"
+                            className="link-quiet"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              openSummary(user);
+                            }}
+                          >
+                            {user.fullName}
+                          </button>
                           <small className="table__sub">
                             {user.employeeId} · {user.email}
                           </small>
@@ -287,7 +320,10 @@ const UserList = () => {
                           )}
                         </td>
                         <td>{user.lastLoginAt ? formatDateTime(user.lastLoginAt) : 'Never'}</td>
-                        <td>
+                        {/* The row opens the summary, but these two do their own
+                            jobs - editing and switching access - so the click
+                            stops here rather than also opening the panel. */}
+                        <td onClick={(event) => event.stopPropagation()}>
                           <div className="row-actions">
                             <Link
                               to={`/admin/users/${user.id}`}
@@ -361,6 +397,80 @@ const UserList = () => {
           </>
         )}
       </section>
+
+      {/* Read-only on purpose. Everything that changes an account - editing it,
+          resetting a password - stays on the detail screen, which the footer
+          link leads to. */}
+      <Modal
+        open={summaryOpen}
+        onClose={closeSummary}
+        title={summaryUser?.fullName}
+        subtitle={summaryUser ? `${summaryUser.employeeId} · ${summaryUser.email}` : undefined}
+        footer={
+          summaryUser && (
+            <>
+              <button type="button" className="btn btn--ghost" onClick={closeSummary}>
+                Close
+              </button>
+              <Link to={`/admin/users/${summaryUser.id}`} className="btn btn--primary">
+                Open full record
+              </Link>
+            </>
+          )
+        }
+      >
+        {summaryUser && (
+          <dl className="detail-list">
+            <dt>Department</dt>
+            <dd>{DEPARTMENT_LABELS[summaryUser.department] || summaryUser.department}</dd>
+
+            <dt>Role</dt>
+            <dd>{ROLE_LABELS[summaryUser.role] || summaryUser.role}</dd>
+
+            {summaryUser.jobTitle && (
+              <>
+                <dt>Job title</dt>
+                <dd>{summaryUser.jobTitle}</dd>
+              </>
+            )}
+
+            <dt>Status</dt>
+            <dd>
+              <Badge tone={statusBadge(summaryUser).tone}>{statusBadge(summaryUser).text}</Badge>
+            </dd>
+
+            <dt>Last sign-in</dt>
+            <dd>
+              {summaryUser.lastLoginAt ? formatDateTime(summaryUser.lastLoginAt) : 'Never signed in'}
+            </dd>
+
+            {/* Shown only when it is true of the account, so the panel says
+                nothing reassuring that it has not actually checked. */}
+            {summaryUser.mustChangePassword && (
+              <>
+                <dt>Password</dt>
+                <dd>Temporary — must be changed at next sign-in</dd>
+              </>
+            )}
+
+            {summaryUser.isLocked && (
+              <>
+                <dt>Locked until</dt>
+                <dd>
+                  {summaryUser.lockedUntil ? formatDateTime(summaryUser.lockedUntil) : 'Unknown'}
+                  {summaryUser.failedLoginAttempts > 0 &&
+                    ` · ${summaryUser.failedLoginAttempts} failed attempt${
+                      summaryUser.failedLoginAttempts === 1 ? '' : 's'
+                    }`}
+                </dd>
+              </>
+            )}
+
+            <dt>Account created</dt>
+            <dd>{summaryUser.createdAt ? formatDateTime(summaryUser.createdAt) : 'Unknown'}</dd>
+          </dl>
+        )}
+      </Modal>
     </div>
   );
 };
