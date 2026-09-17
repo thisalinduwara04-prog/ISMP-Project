@@ -1,47 +1,152 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { useAuth } from '../../auth/AuthContext';
-import { CAPABILITIES } from '../../constants';
+import { getDashboard } from '../../api/compliance';
+import { listIncidents } from '../../api/incidents';
+import { fetchUsers } from '../../api/users';
+import { fetchAuditLogs } from '../../api/audit';
+import ActivityList from '../../components/ActivityList';
+import DepartmentBars from '../../components/DepartmentBars';
+import SeverityPie from '../../components/SeverityPie';
+import StatCard from '../../components/StatCard';
 
-const TILES = [
-  { capability: CAPABILITIES.USER_MANAGE, title: 'User accounts', body: 'Create, deactivate and re-role staff.', module: 'M1', to: '/admin/users' },
-  { capability: CAPABILITIES.POLICY_AUTHOR, title: 'Policies', body: 'Read, version and acknowledge security policies.', module: 'M2', to: '/policies' },
-  { capability: CAPABILITIES.TRAINING_AUTHOR, title: 'Training', body: 'Build modules and quizzes.', module: 'M3', to: '/training' },
-  { capability: CAPABILITIES.COMPLIANCE_VIEW_ORGANISATION, title: 'Compliance', body: 'Organisation-wide dashboard and exports.', module: 'M4', to: '/compliance' },
-  { capability: CAPABILITIES.INCIDENT_TRIAGE, title: 'Incidents', body: 'Triage and resolve reported incidents.', module: 'M5', to: '/incidents' },
-  { capability: CAPABILITIES.AUDIT_VIEW, title: 'Audit log', body: 'Review security events and access denials.', module: 'M1', to: '/admin/audit-logs' },
-];
+// M1 admin dashboard.
+//
+// Composed from endpoints that already exist rather than from a new aggregate
+// route, which keeps the change inside spec section 8. Four requests go out in
+// parallel and each lands in its own piece of state, so one failing endpoint
+// degrades only the widgets that depend on it.
+
+const OPEN_STATUSES = ['OPEN', 'IN_REVIEW'];
+
+// The 20 most recently reported, regardless of status. The server sorts by
+// severity rank rather than by date, so the re-sort happens here.
+//
+// `createdAt` is the report timestamp - NOT `occurredAt`, which is when the
+// employee says the incident happened and is optional. Sorting on a field the
+// serialiser does not emit would make every comparison NaN, leaving the array
+// in severity order while looking like it had been sorted by date.
+const RECENT_LIMIT = 20;
+
+const tallyBySeverity = (items) =>
+  items.reduce((counts, incident) => {
+    counts[incident.severity] = (counts[incident.severity] || 0) + 1;
+    return counts;
+  }, {});
 
 const AdminConsole = () => {
-  const { user, can } = useAuth();
+  const [compliance, setCompliance] = useState({ data: null, error: '' });
+  const [incidents, setIncidents] = useState({ data: null, error: '' });
+  const [activeUsers, setActiveUsers] = useState({ data: null, error: '' });
+  const [activity, setActivity] = useState({ data: null, error: '' });
+
+  useEffect(() => {
+    let active = true;
+
+    const settle = (setter) => ({
+      ok: (data) => { if (active) setter({ data, error: '' }); },
+      fail: (requestError) => {
+        if (active) setter({ data: null, error: requestError.message || 'Unavailable' });
+      },
+    });
+
+    const c = settle(setCompliance);
+    getDashboard().then(c.ok).catch(c.fail);
+
+    const i = settle(setIncidents);
+    listIncidents().then(i.ok).catch(i.fail);
+
+    // The user list paginates at 25 by default, so the array is one page and
+    // not the whole organisation. Ask for a single row and read the server's
+    // own total rather than counting what came back.
+    const u = settle(setActiveUsers);
+    fetchUsers({ status: 'ACTIVE', limit: 1 }).then(u.ok).catch(u.fail);
+
+    const a = settle(setActivity);
+    fetchAuditLogs({ limit: 5 }).then(a.ok).catch(a.fail);
+
+    return () => { active = false; };
+  }, []);
+
+  const items = incidents.data?.items || [];
+  const openCount = items.filter((incident) => OPEN_STATUSES.includes(incident.status)).length;
+  const escalated = incidents.data?.escalatedOpen || 0;
+
+  const recent = [...items]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, RECENT_LIMIT);
+
+  const summary = compliance.data?.summary;
 
   return (
-    <div className="page">
-      <header className="page__header">
-        <h1>Admin console</h1>
-        <p>{user.fullName}</p>
-      </header>
+    <div className="admin-grid">
+      <StatCard
+        label="Open incidents"
+        value={incidents.data ? (openCount === 0 ? 'No open incidents' : openCount) : null}
+        sub={escalated > 0 ? `${escalated} high or critical need attention` : 'open or in review'}
+        to="/incidents"
+        tone={escalated > 0 ? 'alert' : 'default'}
+        wide
+        loading={!incidents.data && !incidents.error}
+        error={incidents.error}
+      />
 
-      <div className="tiles">
-        {TILES.filter((tile) => can(tile.capability)).map((tile) => {
-          const content = (
-            <>
-              <span className="tile__module">{tile.module}</span>
-              <h2>{tile.title}</h2>
-              <p className="muted">{tile.body}</p>
-              <span className={`tile__status${tile.to ? ' tile__status--ready' : ''}`}>
-                {tile.to ? 'Open →' : 'Available in a later sprint'}
-              </span>
-            </>
-          );
+      <StatCard
+        label="Compliance"
+        value={summary ? `${summary.compliancePercent}%` : null}
+        sub="across the organisation"
+        to="/compliance"
+        loading={!compliance.data && !compliance.error}
+        error={compliance.error}
+      />
 
-          return tile.to ? (
-            <Link key={tile.title} to={tile.to} className="card tile tile--link">{content}</Link>
-          ) : (
-            <section key={tile.title} className="card tile">{content}</section>
-          );
-        })}
-      </div>
+      <StatCard
+        label="Overdue items"
+        value={summary ? summary.overdue : null}
+        sub="past their due date"
+        to="/compliance"
+        loading={!compliance.data && !compliance.error}
+        error={compliance.error}
+      />
+
+      <Link to="/incidents" className="widget admin-grid__half">
+        <div className="widget__head">
+          <h2 className="widget__title">Recent incidents by severity</h2>
+          <p className="widget__subtitle">latest {RECENT_LIMIT}</p>
+        </div>
+        {incidents.error
+          ? <p className="muted">{incidents.error}</p>
+          : <SeverityPie counts={tallyBySeverity(recent)} />}
+      </Link>
+
+      <Link to="/compliance" className="widget admin-grid__half">
+        <div className="widget__head">
+          <h2 className="widget__title">Compliance by department</h2>
+          <p className="widget__subtitle">completed assignments</p>
+        </div>
+        {compliance.error
+          ? <p className="muted">{compliance.error}</p>
+          : <DepartmentBars departments={compliance.data?.departments || []} />}
+      </Link>
+
+      <StatCard
+        label="Active users"
+        value={activeUsers.data ? activeUsers.data.pagination.total : null}
+        sub="accounts in use"
+        to="/admin/users"
+        loading={!activeUsers.data && !activeUsers.error}
+        error={activeUsers.error}
+      />
+
+      <Link to="/admin/audit-logs" className="widget admin-grid__three">
+        <div className="widget__head">
+          <h2 className="widget__title">Recent activity</h2>
+          <p className="widget__subtitle">latest security events</p>
+        </div>
+        {activity.error
+          ? <p className="muted">{activity.error}</p>
+          : <ActivityList entries={activity.data?.entries || []} />}
+      </Link>
     </div>
   );
 };
