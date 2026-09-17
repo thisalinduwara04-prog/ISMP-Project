@@ -1,7 +1,7 @@
 const express = require('express');
 
 const controller = require('./auth.controller');
-const { loginSchema, changePasswordSchema } = require('./auth.schemas');
+const { loginSchema, changePasswordSchema, stepUpSchema } = require('./auth.schemas');
 const { validate } = require('../../middleware/validate');
 const { authenticate } = require('../../middleware/authenticate');
 const { loginLimiter } = require('../../middleware/rateLimit');
@@ -30,5 +30,7 @@ router.post(
   validate(changePasswordSchema),
   controller.changePassword
 );
+
+router.post('/step-up', authenticate, validate(stepUpSchema), controller.stepUp);
 
 module.exports = router;

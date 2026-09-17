@@ -212,7 +212,7 @@ const updateUser = async (id, patch, actor, req) => {
   // without a $lookup. This is the moment they go stale, so this is the moment
   // they are refreshed (risk R-03).
   if (changes.department || changes.role) {
-    await assignmentService.refreshUserDenormalisation({
+    await assignmentService.refreshUserSnapshot({
       userId: user._id,
       department: user.department,
       userRole: user.role,

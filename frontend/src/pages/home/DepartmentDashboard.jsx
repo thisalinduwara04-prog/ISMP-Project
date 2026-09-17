@@ -2,12 +2,12 @@ import MyPolicies from '../../components/MyPolicies';
 import MyTraining from '../../components/MyTraining';
 import { useAuth } from '../../auth/AuthContext';
 import { DEPARTMENT_LABELS } from '../../constants';
+import ComplianceDashboard from '../../components/ComplianceDashboard';
 
-// Landing page for MANAGER. The compliance figures arrive with M4; what
-// matters now is that the scope shown is the one the server assigned, and that
-// it cannot be widened from the client.
+// Managers see live department compliance plus their own assigned policy and
+// training work. Department scope is enforced again by the backend.
 const DepartmentDashboard = () => {
-  const { user, capabilities } = useAuth();
+  const { user } = useAuth();
 
   return (
     <div className="page">
@@ -16,36 +16,11 @@ const DepartmentDashboard = () => {
         <p>Compliance overview for your team</p>
       </header>
 
-      {/* A manager has their own policies to read and their own training to
-          complete, like anyone else. Without these the only route to either was
-          typing the URL, because managers see neither My Tasks nor the admin
-          console. */}
+      <ComplianceDashboard fixedDepartment={user.department} />
+
       <MyPolicies heading="policies to read" />
 
       <MyTraining />
-
-      <section className="card">
-        <h2>No compliance data yet</h2>
-        <p className="muted">
-          Acknowledgement and training-completion rates for your department will appear here once
-          the compliance module lands.
-        </p>
-      </section>
-
-      <section className="card">
-        <h2>Your reporting scope</h2>
-        <p className="muted">
-          Fixed to <strong>{DEPARTMENT_LABELS[user.department]}</strong> by the server. Requesting a
-          different department is refused and recorded in the audit log.
-        </p>
-        <ul className="chips">
-          {capabilities.map((capability) => (
-            <li key={capability} className="chip">
-              {capability.replaceAll('_', ' ').toLowerCase()}
-            </li>
-          ))}
-        </ul>
-      </section>
     </div>
   );
 };

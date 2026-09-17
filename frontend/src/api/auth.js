@@ -20,3 +20,5 @@ export const fetchMe = () => unwrap(client.get('/auth/me'));
 
 export const changePassword = (currentPassword, newPassword) =>
   unwrap(client.post('/auth/change-password', { currentPassword, newPassword }));
+
+export const stepUp = (password) => unwrap(client.post('/auth/step-up', { password }));

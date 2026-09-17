@@ -74,8 +74,6 @@ const {
   ASSIGNMENT_ITEM_TYPE,
 } = require('../../constants/assignments');
 
-const NOT_IMPLEMENTED = 'assignment.service: not implemented (owned by M4)';
-
 /**
  * Create one PENDING assignment per active user matching the audience, and
  * return what happened. Called when a policy version or a training module is
@@ -225,28 +223,32 @@ const complete = async ({
 };
 
 /**
- * Move every still-open assignment for an item to SUPERSEDED, so it stops
+ * Move every assignment for a retired item to SUPERSEDED, so it stops
  * counting against live compliance. Called when a new policy version is
  * published over an old one (UC-08 step 5) and when a policy is archived
  * (UC-11).
  *
- * Only PENDING, IN_PROGRESS and OVERDUE assignments move. COMPLETED ones are
- * left exactly as they are - they are the evidence that someone did the work
- * while the old version was current (BR-02). Acknowledgements are never
- * touched by this function or any other in this file.
+ * Completed rows move too because the live dashboard excludes by status and
+ * must not count an obsolete completion alongside the replacement task.
+ * Their completedAt/completionRef fields and acknowledgement documents remain
+ * untouched, preserving the historical evidence required by BR-02.
  *
  * @param {Object} params
  * @param {'POLICY'|'TRAINING'} params.itemType
  * @param {import('mongoose').Types.ObjectId} params.itemId  the OLD policyVersionId / moduleId
+ * @param {boolean} [params.includeCompleted=true] also retire completed rows when an item is replaced
  * @param {import('mongoose').ClientSession} [params.session]
  * @returns {Promise<{supersededCount: number}>}
  */
-const supersede = async ({ itemType, itemId, session = null } = {}) => {
-  // The status filter is the whole point: COMPLETED rows are untouched. Someone
-  // who acknowledged v1 while v1 was current DID that work, and the record of
-  // it survives the version being replaced (BR-02).
+const supersede = async ({ itemType, itemId, includeCompleted = true, session = null } = {}) => {
   const result = await Assignment.updateMany(
-    { itemType, itemId, status: { $in: OPEN_ASSIGNMENT_STATUSES } },
+    {
+      itemType,
+      itemId,
+      status: includeCompleted
+        ? { $ne: ASSIGNMENT_STATUS.SUPERSEDED }
+        : { $in: OPEN_ASSIGNMENT_STATUSES },
+    },
     { $set: { status: ASSIGNMENT_STATUS.SUPERSEDED } },
     { session }
   );
@@ -285,10 +287,18 @@ const updateProgress = async ({
   totalItems,
   session = null,
 } = {}) => {
+  AppAssert(
+    Number.isInteger(totalItems) && totalItems > 0,
+    BAD_REQUEST,
+    'The training module must contain at least one item.',
+    AppErrorCode.VALIDATION_ERROR
+  );
+
   const assignment = await Assignment.findOne({
     userId,
     itemType: ASSIGNMENT_ITEM_TYPE.TRAINING,
     itemId: moduleId,
+    status: { $ne: ASSIGNMENT_STATUS.SUPERSEDED },
   }).session(session);
 
   AppAssert(
@@ -329,6 +339,21 @@ const updateProgress = async ({
     startedAt: assignment.startedAt,
   };
 };
+
+// M4 refresh hooks for the denormalised dashboard/report fields (risk R-03).
+const refreshUserSnapshot = ({ userId, department, userRole, session = null }) =>
+  Assignment.updateMany(
+    { userId },
+    { $set: { department, userRole } },
+    { session }
+  );
+
+const refreshItemTitle = ({ itemType, itemId, itemTitle, session = null }) =>
+  Assignment.updateMany(
+    { itemType, itemId },
+    { $set: { itemTitle } },
+    { session }
+  );
 
 /**
  * Read one user's assignments. Used by M2 and M3 to answer "have I
@@ -519,37 +544,11 @@ const backfillForUser = async (user, { session = null } = {}) => {
   };
 };
 
-/**
- * Re-stamp the denormalised user fields on every assignment belonging to one
- * user, after that user transfers department or changes role.
- *
- * `department` and `userRole` are copies taken at fan-out time so the dashboard
- * can group without a $lookup. They are stale by construction, and the only
- * event that makes them stale is an edit to the user - so M1's account manager
- * calls this the moment it makes one. Without it a transferred employee keeps
- * counting towards their old department's compliance figures (risk R-03).
- *
- * Deliberately not transactional: the user document is the source of truth, so
- * a partial refresh is recoverable by re-running, and holding a transaction
- * open across an unbounded updateMany buys nothing.
- *
- * ADDED for M1's account manager. Additive, so nothing already written against
- * this file breaks.
- *
- * @param {Object} params
- * @param {import('mongoose').Types.ObjectId} params.userId
- * @param {string} params.department  the user's NEW department
- * @param {string} params.userRole    the user's NEW role
- * @returns {Promise<{matchedCount: number, modifiedCount: number}>}
- */
-const refreshUserDenormalisation = async ({ userId, department, userRole }) => {
-  const result = await Assignment.updateMany({ userId }, { $set: { department, userRole } });
-
-  return {
-    matchedCount: result.matchedCount || 0,
-    modifiedCount: result.modifiedCount || 0,
-  };
-};
+// M1 wrote its own `refreshUserDenormalisation` here while M4 was writing
+// `refreshUserSnapshot` on another branch - the same updateMany, arrived at
+// independently because the account manager is what makes those copies stale.
+// M4's is kept: it owns this file, and its version also takes a session.
+// M1's caller now uses it.
 
 module.exports = {
   fanOut,
@@ -559,6 +558,7 @@ module.exports = {
   findByUser,
   findByItem,
   removeForItems,
-  refreshUserDenormalisation,
+  refreshUserSnapshot,
+  refreshItemTitle,
   backfillForUser,
 };

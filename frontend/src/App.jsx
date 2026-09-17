@@ -23,8 +23,10 @@ import UserList from './pages/admin/UserList';
 import UserNew from './pages/admin/UserNew';
 import UserDetail from './pages/admin/UserDetail';
 import AuditLog from './pages/admin/AuditLog';
+import OrganisationCompliance from './pages/home/OrganisationCompliance';
 import Forbidden from './pages/Forbidden';
 import NotFound from './pages/NotFound';
+import Notifications from './pages/Notifications';
 
 // "/" is not a page: it forwards each role to its own landing screen.
 const RoleHome = () => {
@@ -45,6 +47,7 @@ const App = () => (
 
         {/* Every employee has these. */}
         <Route path="/my-tasks" element={<MyTasks />} />
+        <Route path="/notifications" element={<Notifications />} />
 
         {/* M2. Not capability-gated: every role holds POLICY_VIEW_ASSIGNED,
             and which policies are actually returned is decided by the API from
@@ -121,6 +124,14 @@ const App = () => (
           element={(
             <RequireCapability capability={CAPABILITIES.USER_MANAGE}>
               <AdminConsole />
+            </RequireCapability>
+          )}
+        />
+        <Route
+          path="/compliance"
+          element={(
+            <RequireCapability capability={CAPABILITIES.COMPLIANCE_VIEW_ORGANISATION}>
+              <OrganisationCompliance />
             </RequireCapability>
           )}
         />

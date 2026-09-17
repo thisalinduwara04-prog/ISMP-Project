@@ -387,9 +387,9 @@ const publish = async (policyId, versionId, { effectiveFrom } = {}, actor, req) 
       previous.status = POLICY_VERSION_STATUS.SUPERSEDED;
       await previous.save({ session });
 
-      // Only OPEN assignments move. The acknowledgements recorded against the
-      // old version are not touched by this or anything else - they are the
-      // permanent record of who agreed to that exact wording (BR-01, BR-02).
+      // Every old assignment leaves live compliance. Completion timestamps,
+      // references and acknowledgements remain as permanent evidence of who
+      // agreed to that exact wording (BR-01, BR-02).
       ({ supersededCount } = await assignmentService.supersede({
         itemType: ASSIGNMENT_ITEM_TYPE.POLICY,
         itemId: previous._id,

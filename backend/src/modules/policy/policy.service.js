@@ -217,13 +217,13 @@ const archive = async (policy, actor, req) => {
     liveVersion.status = POLICY_VERSION_STATUS.ARCHIVED;
     await liveVersion.save();
 
-    // Open assignments close as SUPERSEDED so they stop counting against live
-    // compliance. Anyone who already acknowledged keeps their COMPLETED row
-    // and their acknowledgement - they did the work, and archiving the policy
-    // does not un-do it.
+    // Open assignments close as SUPERSEDED so unfinished work disappears from
+    // live compliance. Completed rows and acknowledgement evidence remain as
+    // the historical record of work that was actually done.
     ({ supersededCount } = await assignmentService.supersede({
       itemType: ASSIGNMENT_ITEM_TYPE.POLICY,
       itemId: liveVersion._id,
+      includeCompleted: false,
     }));
   }
 
