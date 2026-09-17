@@ -103,8 +103,12 @@ reading:
   widget is labelled "Open incidents" and its subtitle reads
   "open or in review" so the figure is not mistaken for a single-status count.
   This is the dashboard's priority widget; see below.
-- **Active users** counts users with `status === 'ACTIVE'`, tallied from the
-  `fetchUsers()` result. Deactivated leavers are excluded.
+- **Active users** is read from `pagination.total` on
+  `fetchUsers({ status: 'ACTIVE', limit: 1 })` — NOT tallied from the returned
+  array. The list endpoint paginates at 25 by default and caps at 100, so
+  counting the array would silently undercount any organisation with more than
+  one page of staff. Requesting a single row and reading the server's own total
+  is both exact and the cheapest possible request.
 
 - **Recent incidents**, for the pie, means the 20 most recently reported,
   regardless of status: the returned items sorted by report date descending and
