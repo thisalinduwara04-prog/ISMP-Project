@@ -19,6 +19,11 @@ const AppErrorCode = Object.freeze({
   // Authorisation
   INSUFFICIENT_PERMISSIONS: 'INSUFFICIENT_PERMISSIONS',
   SCOPE_VIOLATION: 'SCOPE_VIOLATION',
+  // An admin acting on their own account in a way that would lock them out
+  // of the system - changing their own role or deactivating themselves
+  // (UC-05). Distinct from INSUFFICIENT_PERMISSIONS: the caller has every
+  // permission required, the target is what is refused.
+  CANNOT_MODIFY_SELF: 'CANNOT_MODIFY_SELF',
 
   // Generic
   VALIDATION_ERROR: 'VALIDATION_ERROR',

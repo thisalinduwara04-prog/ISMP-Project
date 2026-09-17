@@ -57,6 +57,26 @@ const AUDIT_ACTIONS = Object.freeze({
   // authorised it, and is also what the count is measured from afterwards -
   // the historical attempts are never deleted (UC-17).
   QUIZ_ATTEMPTS_RESET: 'QUIZ_ATTEMPTS_RESET',
+
+  // M1 - Account management
+  USER_CREATED: 'USER_CREATED',
+  // Profile and department edits. The field diff lives in the metadata so the
+  // audit browser can answer 'what actually changed' without a second lookup.
+  USER_UPDATED: 'USER_UPDATED',
+  // Separate from USER_UPDATED because this one changes what the account is
+  // ALLOWED to do, which is the entry a reviewer is actually looking for.
+  USER_ROLE_CHANGED: 'USER_ROLE_CHANGED',
+  // The leaver control (US-007). Distinct from USER_UPDATED so 'when did this
+  // person lose access' is one indexed query rather than a metadata scan.
+  USER_DEACTIVATED: 'USER_DEACTIVATED',
+  USER_REACTIVATED: 'USER_REACTIVATED',
+  // An admin issuing a new temporary password. Records that it happened and
+  // who authorised it - never the password itself.
+  USER_PASSWORD_RESET: 'USER_PASSWORD_RESET',
+  // Who read the security log, with the filters they used. The same reasoning
+  // as COMPLIANCE_AUDIT_VIEWED: a trail nobody can audit is half a control, and
+  // that applies most of all to the trail itself.
+  AUDIT_LOG_VIEWED: 'AUDIT_LOG_VIEWED',
 });
 
 const AUDIT_OUTCOME = Object.freeze({
