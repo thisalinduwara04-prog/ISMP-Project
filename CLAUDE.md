@@ -28,6 +28,6 @@ Security Policy Awareness & Compliance Management Platform (ISPM).
 - Backend: `routes → middleware → controller → service → model`; thin controllers, logic in services. One folder per feature: `backend/src/modules/<name>/<name>.{routes,controller,service,schemas}.js`.
 - Reuse existing `middleware/` (authenticate, authorize, validate, errorHandler, rateLimit), `utils/` (AppError, AppAssert, asyncHandler, cookies), `constants/` (roles, permissions, http, appErrorCode, auditActions).
 - Validate every route with Zod at the boundary; return the §8.9 error envelope.
-- Frontend: `components/` reusable, `pages/` routed screens. Local state, Tailwind utilities only.
+- Frontend: `components/` reusable, `pages/` routed screens. Local state only — no state library, no form library. There is **no Tailwind**: styling lives in `frontend/src/styles/` (tokens in `base.css`, shell in `layout.css`, primitives in `components.css`); components carry semantic class names and no inline styles.
 - Never: leak password hashes/tokens/quiz answer keys · update or delete `auditLogs` · accept input on simulated phishing pages · commit `.env` or uploads.
 

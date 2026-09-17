@@ -1,6 +1,12 @@
 // Actions recorded in the append-only `auditLogs` collection (spec section 7.14).
 // Modules add their own entries as they land; the exact strings are a shared
 // contract, because M4's audit browser filters on them (T0).
+//
+// IMPORTANT: `AuditLog.action` is `enum: Object.values(AUDIT_ACTIONS)` and
+// `audit.record()` deliberately swallows its own failures so a logging problem
+// can never break a request. The consequence is that an action string missing
+// from this object does not error - it silently records nothing. Add the entry
+// here first, always.
 
 const AUDIT_ACTIONS = Object.freeze({
   AUTH_LOGIN_SUCCESS: 'AUTH_LOGIN_SUCCESS',
@@ -63,6 +69,14 @@ const AUDIT_ACTIONS = Object.freeze({
   // authorised it, and is also what the count is measured from afterwards -
   // the historical attempts are never deleted (UC-17).
   QUIZ_ATTEMPTS_RESET: 'QUIZ_ATTEMPTS_RESET',
+
+  // M5 - Incident reporting
+  INCIDENT_SUBMITTED: 'INCIDENT_SUBMITTED',
+  INCIDENT_STATUS_CHANGED: 'INCIDENT_STATUS_CHANGED',
+  INCIDENT_SEVERITY_OVERRIDDEN: 'INCIDENT_SEVERITY_OVERRIDDEN',
+  INCIDENT_ASSIGNED: 'INCIDENT_ASSIGNED',
+  INCIDENT_ATTACHMENT_REJECTED: 'INCIDENT_ATTACHMENT_REJECTED',
+  INCIDENT_ATTACHMENT_DOWNLOADED: 'INCIDENT_ATTACHMENT_DOWNLOADED',
 
   // M1 - Account management
   USER_CREATED: 'USER_CREATED',

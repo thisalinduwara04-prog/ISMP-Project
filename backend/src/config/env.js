@@ -47,6 +47,12 @@ const schema = z.object({
 
   CLIENT_ORIGINS: csv.default('http://localhost:5173'),
 
+  // Incident attachments (UC-22 step 3, NFR-SEC-05). The directory is resolved
+  // relative to the backend root and deliberately sits outside anything served
+  // statically - downloads go through an authenticated route, never a URL.
+  MAX_UPLOAD_MB: z.coerce.number().int().positive().max(50).default(10),
+  UPLOAD_DIR: z.string().min(1).default('uploads/incidents'),
+
   // Optional development/sandbox SMTP. Reminder delivery remains non-fatal
   // when these are absent; the in-app notification is still retained.
   SMTP_HOST: z.string().optional(),
