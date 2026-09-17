@@ -132,6 +132,8 @@
   margin: 0 auto;
 }
 
+.page--wide { max-width: 1200px; }
+
 .page--centered {
   max-width: 480px;
   padding-top: 3rem;

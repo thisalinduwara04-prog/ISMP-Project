@@ -17,8 +17,14 @@ const AUDIT_ACTIONS = Object.freeze({
   AUTH_TOKEN_REFRESHED: 'AUTH_TOKEN_REFRESHED',
   AUTH_TOKEN_REUSE_DETECTED: 'AUTH_TOKEN_REUSE_DETECTED',
   AUTH_PASSWORD_CHANGED: 'AUTH_PASSWORD_CHANGED',
+  AUTH_STEP_UP_SUCCESS: 'AUTH_STEP_UP_SUCCESS',
+  AUTH_STEP_UP_FAILURE: 'AUTH_STEP_UP_FAILURE',
   RBAC_DENIED: 'RBAC_DENIED',
   RBAC_SCOPE_VIOLATION: 'RBAC_SCOPE_VIOLATION',
+  COMPLIANCE_DASHBOARD_VIEWED: 'COMPLIANCE_DASHBOARD_VIEWED',
+  COMPLIANCE_REPORT_EXPORTED: 'COMPLIANCE_REPORT_EXPORTED',
+  COMPLIANCE_REMINDER_SENT: 'COMPLIANCE_REMINDER_SENT',
+  COMPLIANCE_OVERDUE_SWEEP: 'COMPLIANCE_OVERDUE_SWEEP',
   // Distinct from RBAC_SCOPE_VIOLATION, which is a manager reaching for
   // another department's reports. This is someone asking for a policy version
   // they were not targeted by - worth its own filter when reviewing whether an
@@ -71,6 +77,26 @@ const AUDIT_ACTIONS = Object.freeze({
   INCIDENT_ASSIGNED: 'INCIDENT_ASSIGNED',
   INCIDENT_ATTACHMENT_REJECTED: 'INCIDENT_ATTACHMENT_REJECTED',
   INCIDENT_ATTACHMENT_DOWNLOADED: 'INCIDENT_ATTACHMENT_DOWNLOADED',
+
+  // M1 - Account management
+  USER_CREATED: 'USER_CREATED',
+  // Profile and department edits. The field diff lives in the metadata so the
+  // audit browser can answer 'what actually changed' without a second lookup.
+  USER_UPDATED: 'USER_UPDATED',
+  // Separate from USER_UPDATED because this one changes what the account is
+  // ALLOWED to do, which is the entry a reviewer is actually looking for.
+  USER_ROLE_CHANGED: 'USER_ROLE_CHANGED',
+  // The leaver control (US-007). Distinct from USER_UPDATED so 'when did this
+  // person lose access' is one indexed query rather than a metadata scan.
+  USER_DEACTIVATED: 'USER_DEACTIVATED',
+  USER_REACTIVATED: 'USER_REACTIVATED',
+  // An admin issuing a new temporary password. Records that it happened and
+  // who authorised it - never the password itself.
+  USER_PASSWORD_RESET: 'USER_PASSWORD_RESET',
+  // Who read the security log, with the filters they used. The same reasoning
+  // as COMPLIANCE_AUDIT_VIEWED: a trail nobody can audit is half a control, and
+  // that applies most of all to the trail itself.
+  AUDIT_LOG_VIEWED: 'AUDIT_LOG_VIEWED',
 });
 
 const AUDIT_OUTCOME = Object.freeze({
@@ -87,6 +113,8 @@ const AUDIT_ENTITY_TYPE = Object.freeze({
   TRAINING_MODULE: 'TRAINING_MODULE',
   INCIDENT: 'INCIDENT',
   CAMPAIGN: 'CAMPAIGN',
+  ASSIGNMENT: 'ASSIGNMENT',
+  COMPLIANCE_REPORT: 'COMPLIANCE_REPORT',
 });
 
 module.exports = { AUDIT_ACTIONS, AUDIT_OUTCOME, AUDIT_ENTITY_TYPE };

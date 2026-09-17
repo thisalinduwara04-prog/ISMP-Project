@@ -333,14 +333,15 @@ const run = async () => {
 
   // v1's assignments were COMPLETED before v2 was published, so they must be
   // left alone - completed work is not un-done by a new version (BR-02).
-  const v1Completed = await Assignment.countDocuments({
+  const v1Superseded = await Assignment.countDocuments({
     itemId: v1Id,
-    status: ASSIGNMENT_STATUS.COMPLETED,
+    status: ASSIGNMENT_STATUS.SUPERSEDED,
+    completedAt: { $ne: null },
   });
   check(
-    'US-011 completed v1 assignments are not superseded',
-    v1Completed === 12,
-    `${v1Completed} still COMPLETED`
+    'US-011 completed v1 assignments leave live compliance but retain evidence',
+    v1Superseded === 12,
+    `${v1Superseded} superseded rows retain completion timestamps`
   );
 
   const livePublished = await PolicyVersion.countDocuments({
@@ -640,8 +641,8 @@ const run = async () => {
 
   const archiveResult = (archived.body.data && archived.body.data.policy.archive) || {};
   check(
-    'T10 archiving closes the open assignments',
-    archived.status === 200 && archiveResult.closedAssignments === 11,
+    'T10 archiving closes every live assignment',
+    archived.status === 200 && archiveResult.closedAssignments === 12,
     `${archiveResult.closedAssignments} closed`
   );
 
@@ -659,14 +660,15 @@ const run = async () => {
     `${afterArchive} retained`
   );
 
-  const completedKept = await Assignment.countDocuments({
+  const completionEvidenceKept = await Assignment.countDocuments({
     itemId: v2Id,
-    status: ASSIGNMENT_STATUS.COMPLETED,
+    status: ASSIGNMENT_STATUS.SUPERSEDED,
+    completionRef: { $ne: null },
   });
   check(
-    'T10 an already-completed assignment is not closed as superseded',
-    completedKept === 1,
-    `${completedKept} still COMPLETED`
+    'T10 an archived completion leaves live compliance but retains its evidence link',
+    completionEvidenceKept === 1,
+    `${completionEvidenceKept} superseded row retains completion evidence`
   );
 
   const employeeListAfter = await request(app).get(POLICIES).set(as(warehouse[5]));

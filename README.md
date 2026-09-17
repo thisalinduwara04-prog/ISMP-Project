@@ -4,7 +4,11 @@ Group 14 · IE3072 Information Security Policy Management · SLIIT
 
 Implementation of the platform described in `Spec_Group14_SecurityPolicyPlatform.md`.
 
-**Current state: M1 (Authentication & RBAC) complete.** M2–M5 are not yet built.
+**Current state:** M1 (Authentication & RBAC) is complete. The
+`compliance-tracking-reporting` integration branch combines M2 policy management
+with M4 dashboards, reminders, notifications and PDF/XLSX reporting. M3 and M5
+are not yet built; the seed script supplies representative training assignments
+until the training publication flow lands.
 
 ---
 
@@ -20,8 +24,6 @@ Fill in `MONGO_URI` (Atlas or local) and generate the two secrets:
 node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 ```
 
-Then seed and run:
-
 Check the connection before anything else — it diagnoses the common Atlas
 failures instead of leaving you with a generic timeout:
 
@@ -33,6 +35,12 @@ Then seed and run:
 
 ```bash
 cd backend && npm run seed && npm run dev
+```
+
+To add the real M2 policy catalogue and its generated compliance assignments:
+
+```bash
+cd backend && npm run demo:policies
 ```
 
 **Building M2–M5?** Read [docs/ADDING-A-MODULE.md](docs/ADDING-A-MODULE.md) first.
@@ -75,7 +83,17 @@ All use the password `Savikro#2026`.
 | Append-only audit log | Done |
 
 Deferred: UC-01/UC-05 admin user management screens (accounts come from the seed
-script for now), UC-06 step-up re-authentication, and real SMTP.
+script for now) and real SMTP infrastructure.
+
+## What M4 delivers
+
+- Personal compliance status and outstanding assignment list.
+- Department and organisation dashboards with enforced server-side scope.
+- Policy/training rates, overdue metrics, department chart and staff drill-down data.
+- Nightly overdue detection, automatic reminders and scoped manual reminders.
+- In-app notification feed with optional development SMTP delivery.
+- Filtered PDF and Excel compliance exports.
+- Password step-up for organisation-wide compliance data after 30 minutes.
 
 ---
 

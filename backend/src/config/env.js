@@ -52,6 +52,17 @@ const schema = z.object({
   // statically - downloads go through an authenticated route, never a URL.
   MAX_UPLOAD_MB: z.coerce.number().int().positive().max(50).default(10),
   UPLOAD_DIR: z.string().min(1).default('uploads/incidents'),
+
+  // Optional development/sandbox SMTP. Reminder delivery remains non-fatal
+  // when these are absent; the in-app notification is still retained.
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_SECURE: z.enum(['true', 'false']).default('false').transform((value) => value === 'true'),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().email().default('security@savikro.local'),
+  REMINDER_CRON: z.string().default('0 1 * * *'),
+  REMINDER_TIMEZONE: z.string().default('Asia/Colombo'),
 });
 
 // An unset variable and one present but empty (`MONGO_URI=` in a .env file)

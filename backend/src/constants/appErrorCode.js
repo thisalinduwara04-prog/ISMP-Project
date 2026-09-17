@@ -15,10 +15,22 @@ const AppErrorCode = Object.freeze({
   PASSWORD_CHANGE_REQUIRED: 'PASSWORD_CHANGE_REQUIRED',
   WEAK_PASSWORD: 'WEAK_PASSWORD',
   PASSWORD_REUSED: 'PASSWORD_REUSED',
+  STEP_UP_REQUIRED: 'STEP_UP_REQUIRED',
 
   // Authorisation
   INSUFFICIENT_PERMISSIONS: 'INSUFFICIENT_PERMISSIONS',
   SCOPE_VIOLATION: 'SCOPE_VIOLATION',
+  // An admin acting on their own account in a way that would lock them out
+  // of the system - changing their own role or deactivating themselves
+  // (UC-05). Distinct from INSUFFICIENT_PERMISSIONS: the caller has every
+  // permission required, the target is what is refused.
+  CANNOT_MODIFY_SELF: 'CANNOT_MODIFY_SELF',
+
+  // Compliance
+  ASSIGNMENT_NOT_FOUND: 'ASSIGNMENT_NOT_FOUND',
+  USER_OUT_OF_SCOPE: 'USER_OUT_OF_SCOPE',
+  NO_REMINDER_RECIPIENTS: 'NO_REMINDER_RECIPIENTS',
+  REPORT_GENERATION_FAILED: 'REPORT_GENERATION_FAILED',
 
   // Incidents (M5)
   INVALID_STATUS_TRANSITION: 'INVALID_STATUS_TRANSITION',

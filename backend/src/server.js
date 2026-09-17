@@ -3,12 +3,14 @@ const env = require('./config/env');
 const { createApp } = require('./app');
 const { connectDatabase, disconnectDatabase } = require('./config/db');
 const redactUri = require('./utils/redactUri');
+const { startReminderScheduler, stopReminderScheduler } = require('./modules/compliance/reminder.scheduler');
 
 const start = async () => {
   await connectDatabase();
   console.log(`[db] Connected to ${redactUri(env.MONGO_URI)}`);
 
   const app = createApp();
+  startReminderScheduler();
   const server = app.listen(env.PORT, () => {
     console.log(`[api] Listening on http://localhost:${env.PORT}/api/v1 (${env.NODE_ENV})`);
   });
@@ -18,6 +20,7 @@ const start = async () => {
   const shutdown = async (signal) => {
     console.log(`\n[api] ${signal} received, shutting down.`);
     server.close(async () => {
+      stopReminderScheduler();
       await disconnectDatabase();
       console.log('[api] Shutdown complete.');
       process.exit(0);

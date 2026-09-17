@@ -640,6 +640,124 @@
   }
 }
 
+/* --- Compliance --------------------------------------------------------- */
+
+.metrics {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.metric { display: grid; gap: 0.2rem; }
+.metric__label, .metric__detail { color: var(--ink-soft); font-size: 0.8125rem; }
+.metric__value { font-size: 1.75rem; line-height: 1.15; }
+
+.filters {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  align-items: end;
+}
+.filters .field { margin: 0; }
+.filters__actions, .button-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+.check-dropdown { position: relative; }
+
+.check-dropdown__summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  list-style: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.check-dropdown__summary::-webkit-details-marker { display: none; }
+.check-dropdown__summary::after {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform 120ms ease;
+}
+.check-dropdown[open] .check-dropdown__summary::after { transform: rotate(225deg) translate(-2px, -2px); }
+
+.check-dropdown__menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  display: grid;
+  gap: 0.2rem;
+  width: max-content;
+  min-width: 100%;
+  padding: 0.55rem 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+}
+
+.filter-check {
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: center;
+  min-height: 32px;
+  color: var(--ink);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.filter-check input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: var(--brand);
+}
+
+.filter-check input:disabled { cursor: not-allowed; }
+.filter-check input:disabled + span { color: var(--ink-soft); }
+
+.filter-check input:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.section-heading { display: flex; justify-content: space-between; align-items: start; gap: 1rem; margin-bottom: 1rem; }
+.section-heading p { margin: 0; }
+.chart { width: 100%; height: 280px; }
+
+.table-scroll { overflow-x: auto; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.data-table th, .data-table td { padding: 0.7rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+.data-table th { color: var(--ink-soft); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; }
+.data-table td small { display: block; color: var(--ink-soft); }
+
+.task-list { display: grid; gap: 0.75rem; }
+.task { display: flex; justify-content: space-between; gap: 1rem; padding: 1rem; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.task h3 { margin-top: 0.35rem; }
+.task__due { display: grid; align-content: start; text-align: right; white-space: nowrap; }
+.task__due span { color: var(--ink-soft); font-size: 0.75rem; }
+.status { display: inline-block; padding: 0.15rem 0.45rem; border-radius: 999px; background: var(--brand-tint); color: var(--brand-dark); font-size: 0.6875rem; font-weight: 700; }
+.status--overdue { background: var(--danger-tint); color: var(--danger); }
+.status--completed { background: #e8f6ee; color: var(--ok); }
+
+.notification { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.notification--unread { border-left: 4px solid var(--brand); }
+.notification p { margin-bottom: 0.25rem; }
+.step-up { display: grid; grid-template-columns: 1fr minmax(220px, 320px) auto; align-items: end; gap: 1rem; }
+.step-up .field { margin: 0; }
+
+@media (max-width: 760px) {
+  .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .section-heading, .task, .notification { align-items: stretch; flex-direction: column; }
+  .step-up { grid-template-columns: 1fr; }
+  .task__due { text-align: left; }
+}
+
 /* --- Policy task list (M2, US-013) --------------------------------------- */
 
 .alert--success {
@@ -1741,4 +1859,214 @@
     max-height: 40vh;
     overflow-y: auto;
   }
+}
+
+/* --- Filter row -------------------------------------------------------- */
+/* Wraps to a single column on a phone, so the roster stays usable at 360 px
+   (NFR-USE-02). `auto-fit` rather than a fixed count: the row reflows to
+   however many filters a screen happens to have. */
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.filters .field {
+  margin-bottom: 0;
+}
+
+/* --- Credential panel -------------------------------------------------- */
+/* The one place a password is displayed. Deliberately loud: the value cannot be
+   retrieved again once this screen is left, so it should not look like an
+   ordinary read-only field somebody scrolls past. */
+.credential {
+  border-left: 4px solid var(--brand);
+}
+
+.credential__row {
+  margin: 1rem 0;
+}
+
+.credential__value {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.credential__secret {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+  background: var(--brand-tint);
+  border-color: var(--brand);
+}
+
+/* --- Row actions ------------------------------------------------------- */
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* An icon-only control still needs a real hit area on a warehouse tablet, so
+   it keeps the 44px target the buttons use (NFR-USE-02). */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  color: var(--ink-soft);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.icon-btn:hover {
+  color: var(--brand);
+  background: var(--brand-tint);
+  border-color: var(--brand-tint);
+}
+
+.icon-btn:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
+}
+
+/* --- Toggle switch ----------------------------------------------------- */
+/* Used for activate/deactivate on a roster row. Never the only signal: the
+   Status column beside it says the state in words (NFR-USE-03). */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.switch[disabled] {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.switch__track {
+  position: relative;
+  display: block;
+  width: 36px;
+  height: 20px;
+  background: var(--line);
+  border-radius: 999px;
+  transition: background 0.15s ease;
+}
+
+.switch__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: var(--surface);
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(16, 21, 28, 0.3);
+  transition: transform 0.15s ease;
+}
+
+.switch--on .switch__track {
+  background: var(--ok);
+}
+
+.switch--on .switch__thumb {
+  transform: translateX(16px);
+}
+
+.switch:focus-visible .switch__track {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* --- Two-column detail layout ------------------------------------------ */
+/* Editable content on the left, a read-only summary alongside. Stacks below
+   the breakpoint, and because the main column comes first in the markup the
+   details stay the first thing on a phone. */
+.detail-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 18rem);
+  gap: 1rem;
+  align-items: start;
+}
+
+.detail-columns__main {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+/* Follows the form down a long edit rather than scrolling off the top. */
+.detail-columns__side {
+  position: sticky;
+  top: 1rem;
+}
+
+@media (max-width: 52rem) {
+  .detail-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-columns__side {
+    position: static;
+  }
+}
+
+.card--compact {
+  padding: 1rem;
+  font-size: 0.875rem;
+}
+
+.card--compact h2 {
+  margin-top: 0;
+  font-size: 0.95rem;
+}
+
+/* --- Audit detail row --------------------------------------------------- */
+/* The expanded half of a log entry. Tinted and inset so a long table still
+   reads as rows with one opened, rather than as two interleaved tables. */
+.audit-detail > td {
+  padding: 1rem 1.25rem;
+  background: var(--canvas);
+  border-left: 3px solid var(--brand);
+}
+
+.audit-detail .detail-list {
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.75rem 1.5rem;
+}
+
+/* A dt/dd pair wrapped in a div so metadata keys stay glued to their values
+   when the grid reflows. */
+.audit-detail__meta {
+  min-width: 0;
+}
+
+.audit-detail code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+/* User agents are long and are reference material, not something to read. */
+.audit-detail__agent {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+/* Date inputs render narrower than text inputs in some browsers; this keeps
+   the filter row visually even. */
+.filters input[type='date'] {
+  min-height: var(--touch-target);
 }

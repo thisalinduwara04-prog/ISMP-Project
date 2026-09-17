@@ -16,7 +16,7 @@ const { daysFromNow } = require('../../utils/date.util');
 // re-reads both from the database on every request (see authenticate), because
 // a token minted before a role change would otherwise stay authoritative for
 // its full lifetime. `tokenVersion` is the field that makes that check cheap.
-const signAccessToken = (user) =>
+const signAccessToken = (user, authTime = Math.floor(Date.now() / 1000)) =>
   jwt.sign(
     {
       sub: user._id.toString(),
@@ -26,7 +26,7 @@ const signAccessToken = (user) =>
       // Recorded now so step-up re-authentication (UC-06) can later ask "how
       // long ago did this person actually type their password?" without
       // changing the token format.
-      auth_time: Math.floor(Date.now() / 1000),
+      auth_time: authTime,
     },
     env.JWT_ACCESS_SECRET,
     { expiresIn: `${env.ACCESS_TOKEN_TTL_MINUTES}m` }
@@ -57,7 +57,7 @@ const generateRefreshTokenValue = () => crypto.randomBytes(REFRESH_TOKEN_BYTES).
 
 const hashRefreshToken = (value) => crypto.createHash('sha256').update(value).digest('hex');
 
-const issueRefreshToken = async (user, { userAgent, ipAddress, replacesId = null } = {}) => {
+const issueRefreshToken = async (user, { userAgent, ipAddress, replacesId = null, authTime = Math.floor(Date.now() / 1000) } = {}) => {
   const value = generateRefreshTokenValue();
 
   const record = await RefreshToken.create({
@@ -66,6 +66,7 @@ const issueRefreshToken = async (user, { userAgent, ipAddress, replacesId = null
     userAgent: userAgent || null,
     ipAddress: ipAddress || null,
     expiresAt: daysFromNow(env.REFRESH_TOKEN_TTL_DAYS),
+    authTime,
   });
 
   if (replacesId) {

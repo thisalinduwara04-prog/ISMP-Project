@@ -22,8 +22,14 @@ import AdminConsole from './pages/home/AdminConsole';
 import ReportIncident from './pages/incidents/ReportIncident';
 import IncidentList from './pages/incidents/IncidentList';
 import IncidentDetail from './pages/incidents/IncidentDetail';
+import UserList from './pages/admin/UserList';
+import UserNew from './pages/admin/UserNew';
+import UserDetail from './pages/admin/UserDetail';
+import AuditLog from './pages/admin/AuditLog';
+import OrganisationCompliance from './pages/home/OrganisationCompliance';
 import Forbidden from './pages/Forbidden';
 import NotFound from './pages/NotFound';
+import Notifications from './pages/Notifications';
 
 // "/" is not a page: it forwards each role to its own landing screen.
 const RoleHome = () => {
@@ -50,6 +56,7 @@ const App = () => (
         <Route path="/incidents/new" element={<ReportIncident />} />
         <Route path="/incidents" element={<IncidentList />} />
         <Route path="/incidents/:id" element={<IncidentDetail />} />
+        <Route path="/notifications" element={<Notifications />} />
 
         {/* M2. Not capability-gated: every role holds POLICY_VIEW_ASSIGNED,
             and which policies are actually returned is decided by the API from
@@ -126,6 +133,54 @@ const App = () => (
           element={(
             <RequireCapability capability={CAPABILITIES.USER_MANAGE}>
               <AdminConsole />
+            </RequireCapability>
+          )}
+        />
+        <Route
+          path="/compliance"
+          element={(
+            <RequireCapability capability={CAPABILITIES.COMPLIANCE_VIEW_ORGANISATION}>
+              <OrganisationCompliance />
+            </RequireCapability>
+          )}
+        />
+
+        {/* M1 account management. Gated on USER_MANAGE so the screens are not
+            offered to someone who cannot use them — every /users route refuses
+            a non-admin regardless of what is rendered here (NFR-SEC-03).
+            `/new` is declared before `/:userId` so it is not swallowed by it. */}
+        <Route
+          path="/admin/users"
+          element={(
+            <RequireCapability capability={CAPABILITIES.USER_MANAGE}>
+              <UserList />
+            </RequireCapability>
+          )}
+        />
+        <Route
+          path="/admin/users/new"
+          element={(
+            <RequireCapability capability={CAPABILITIES.USER_MANAGE}>
+              <UserNew />
+            </RequireCapability>
+          )}
+        />
+        <Route
+          path="/admin/users/:userId"
+          element={(
+            <RequireCapability capability={CAPABILITIES.USER_MANAGE}>
+              <UserDetail />
+            </RequireCapability>
+          )}
+        />
+
+        {/* The security log. Gated on AUDIT_VIEW so it is not offered to
+            someone who cannot use it — the API refuses regardless. */}
+        <Route
+          path="/admin/audit-logs"
+          element={(
+            <RequireCapability capability={CAPABILITIES.AUDIT_VIEW}>
+              <AuditLog />
             </RequireCapability>
           )}
         />
