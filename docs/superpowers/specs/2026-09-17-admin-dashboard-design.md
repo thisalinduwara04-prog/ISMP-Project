@@ -85,9 +85,9 @@ handlers on a `div`, so widgets stay keyboard-reachable.
 
 | Widget                      | Source            | Navigates to        |
 |-----------------------------|-------------------|---------------------|
+| Open incidents (priority)   | `listIncidents()` | `/incidents`        |
 | Compliance %                | `getDashboard()`  | `/compliance`       |
 | Overdue items               | `getDashboard()`  | `/compliance`       |
-| Open incidents              | `listIncidents()` | `/incidents`        |
 | Active users                | `fetchUsers()`    | `/admin/users`      |
 | Recent incidents by severity| `listIncidents()` | `/incidents`        |
 | Compliance by department    | `getDashboard()`  | `/compliance`       |
@@ -102,6 +102,7 @@ reading:
   incident still requiring attention, not only those in the `OPEN` state. The
   widget is labelled "Open incidents" and its subtitle reads
   "open or in review" so the figure is not mistaken for a single-status count.
+  This is the dashboard's priority widget; see below.
 - **Active users** counts users with `status === 'ACTIVE'`, tallied from the
   `fetchUsers()` result. Deactivated leavers are excluded.
 
@@ -114,6 +115,37 @@ reading:
 The pie and the "open incidents" figure therefore measure different things by
 design — one is a recent sample across all statuses, the other a live count of
 outstanding work. Their subtitles are what keep that distinction visible.
+
+### The open-incidents priority widget
+
+Open incidents are the one thing on this screen that may need acting on today,
+so the widget is deliberately the loudest element rather than a peer of the
+other three KPIs. It takes the first slot of the KPI row and spans two columns
+on desktop, collapsing to full width on narrow screens.
+
+It has two states, driven by `escalatedOpen` from the same `listIncidents()`
+call. That field is the server's own UC-24 escalation count — HIGH or CRITICAL
+incidents in `OPEN` or `IN_REVIEW`, computed for triagers — so the dashboard
+inherits the existing definition of "needs attention" instead of inventing a
+second one:
+
+- **Escalated** (`escalatedOpen > 0`): the card takes the alert treatment —
+  `#e0574f` accent, a warning glyph, and a second line reading
+  "N high or critical need attention". This is what an administrator should see
+  first on signing in.
+- **Calm** (`escalatedOpen === 0`): ordinary surface with the accent used for
+  the figure only. A queue with nothing escalated should not look like an
+  emergency.
+
+Both states carry the same wording distinction in text, so the escalation is
+never signalled by colour alone (NFR-USE-03).
+
+When the count is zero the widget says "No open incidents" rather than showing a
+bare `0`.
+
+`escalatedOpen` is `0` for any caller without `INCIDENT_TRIAGE`. Administrators
+hold it, so the escalated state is reachable for them; the widget simply never
+escalates for a role that could not act on it anyway.
 
 ### Data flow
 
@@ -188,7 +220,9 @@ New, in `frontend/src/components/` per CLAUDE.md rule 4:
 - `AdminLayout.jsx` — sidebar shell, header, `<Outlet />`
 - `AdminSidebar.jsx` — the capability-filtered nav list
 - `AdminIcon.jsx` — inline SVG icon set
-- `StatCard.jsx` — one KPI widget: label, value, accent, destination
+- `StatCard.jsx` — one KPI widget: label, value, accent, destination, and an
+  optional `tone` plus secondary line, which is what gives the open-incidents
+  card its escalated state
 - `SeverityPie.jsx` — the donut plus its legend
 - `RoleLayout.jsx` — picks `AdminLayout` or `Layout` from the role
 
@@ -213,6 +247,9 @@ The project has no frontend test suite, so verification is:
 3. Manual check per role, signed in against seeded accounts:
    - admin sees the sidebar, the dashboard and no My tasks or Department item
    - every widget navigates to the page in the table above
+   - the open-incidents widget shows its escalated state when the seed contains
+     a HIGH or CRITICAL incident that is open or in review, and its calm state
+     once those are resolved
    - employee and manager screens are visually unchanged
    - the severity legend reads correctly with colour ignored
 
