@@ -52,11 +52,21 @@
 
 const Assignment = require('../../models/Assignment');
 const User = require('../../models/User');
+// Read-only, and only ever to answer "which published items is this user
+// targeted by" - the inverse of fan-out (see `backfillForUser`). This file is
+// already the doorway between the modules and the ledger, so resolving that
+// question here is what keeps M1 from having to import M2's and M3's services
+// and what stops the audience rule being reimplemented a third time.
+const PolicyVersion = require('../../models/PolicyVersion');
+const TrainingModule = require('../../models/TrainingModule');
 const AppAssert = require('../../utils/AppAssert');
 const AppErrorCode = require('../../constants/appErrorCode');
 const { BAD_REQUEST, NOT_FOUND } = require('../../constants/http');
 const { addDays } = require('../../utils/date.util');
-const { audienceUserFilter } = require('../../utils/audience');
+const { audienceUserFilter, buildAudienceFilter } = require('../../utils/audience');
+const { USER_STATUS } = require('../../constants/roles');
+const { POLICY_VERSION_STATUS } = require('../../constants/policies');
+const { MODULE_STATUS } = require('../../constants/training');
 const {
   ASSIGNMENT_STATUS,
   ASSIGNMENT_SOURCE,
@@ -429,6 +439,117 @@ const removeForItems = async ({ itemType, itemIds, session = null } = {}) => {
   return { deletedCount: result.deletedCount || 0 };
 };
 
+/**
+ * The inverse of `fanOut`: give ONE user every published item their role and
+ * department are targeted by, for the ones they do not already hold.
+ *
+ * Fan-out resolves an item's audience once, at publish time. That is correct
+ * for everyone who was there, and silently wrong for everyone who arrives
+ * afterwards - they can SEE the policy, because the read path evaluates the
+ * audience live, but they hold no ledger row, so acknowledging it is refused.
+ * The two halves of "assigned" have to be reconciled whenever the population
+ * changes, and this is that reconciliation.
+ *
+ * Called when a user is created, transfers department, changes role, or is
+ * reactivated. Cheap enough to run on all four: it is two indexed reads over
+ * collections holding tens of documents, and a bulk write only when something
+ * is actually missing.
+ *
+ * DUE DATES run from NOW, not from the item's publication. A policy published
+ * six months ago with a 14-day window would otherwise land on a new starter
+ * already overdue, which is both unfair to them and corrosive to the overdue
+ * figure - it would count people who joined recently rather than people who are
+ * late.
+ *
+ * Unlike `fanOut` this does NOT throw when it finds nothing to do. An employee
+ * in a department with no published policies is ordinary, not a mistake.
+ *
+ * TODO (M4): the symmetric case. When somebody transfers OUT of an audience
+ * they keep any still-open assignment for an item that no longer targets them,
+ * and because the read path is audience-checked they can never complete it - it
+ * sits open and eventually goes OVERDUE. Closing those as SUPERSEDED belongs
+ * with the module that owns the sweep and the dashboard; agreed to defer.
+ *
+ * @param {Object} user                     the user AFTER the change, with
+ *                                          current `role`, `department`, `status`
+ * @param {Object} [options]
+ * @param {import('mongoose').ClientSession} [options.session]
+ * @returns {Promise<{assignedCount: number, policyCount: number, trainingCount: number}>}
+ */
+const backfillForUser = async (user, { session = null } = {}) => {
+  const nothingDone = { assignedCount: 0, policyCount: 0, trainingCount: 0 };
+
+  // Deactivated accounts are deliberately excluded, exactly as they are from
+  // fan-out: assigning work to a leaver would distort every compliance
+  // percentage (7.18).
+  if (!user || user.status !== USER_STATUS.ACTIVE) return nothingDone;
+
+  const audience = buildAudienceFilter(user);
+
+  const [versions, modules] = await Promise.all([
+    PolicyVersion.find({ status: POLICY_VERSION_STATUS.PUBLISHED, ...audience })
+      .select('_id title dueInDays')
+      .session(session)
+      .lean(),
+    TrainingModule.find({ status: MODULE_STATUS.PUBLISHED, ...audience })
+      .select('_id title dueInDays')
+      .session(session)
+      .lean(),
+  ]);
+
+  if (versions.length === 0 && modules.length === 0) return nothingDone;
+
+  const assignedAt = new Date();
+
+  const operationFor = (item, itemType) => ({
+    updateOne: {
+      filter: { userId: user._id, itemType, itemId: item._id },
+      update: {
+        // $setOnInsert throughout, so a row the user already holds is left
+        // exactly as it is - a COMPLETED acknowledgement is evidence and must
+        // not have its status or dates rewritten by a later transfer.
+        $setOnInsert: {
+          department: user.department,
+          userRole: user.role,
+          itemTitle: item.title,
+          status: ASSIGNMENT_STATUS.PENDING,
+          assignedAt,
+          dueDate: addDays(assignedAt, item.dueInDays),
+          source: ASSIGNMENT_SOURCE.PUBLICATION,
+          sourceRef: null,
+          remindersSent: 0,
+          createdAt: assignedAt,
+          updatedAt: assignedAt,
+          ...(itemType === ASSIGNMENT_ITEM_TYPE.TRAINING
+            ? { progress: { completedItemIds: [], percentComplete: 0 } }
+            : {}),
+        },
+      },
+      upsert: true,
+      timestamps: false,
+    },
+  });
+
+  const operations = [
+    ...versions.map((version) => operationFor(version, ASSIGNMENT_ITEM_TYPE.POLICY)),
+    ...modules.map((module) => operationFor(module, ASSIGNMENT_ITEM_TYPE.TRAINING)),
+  ];
+
+  const result = await Assignment.bulkWrite(operations, { ordered: false, session });
+
+  return {
+    assignedCount: result.upsertedCount || 0,
+    policyCount: versions.length,
+    trainingCount: modules.length,
+  };
+};
+
+// M1 wrote its own `refreshUserDenormalisation` here while M4 was writing
+// `refreshUserSnapshot` on another branch - the same updateMany, arrived at
+// independently because the account manager is what makes those copies stale.
+// M4's is kept: it owns this file, and its version also takes a session.
+// M1's caller now uses it.
+
 module.exports = {
   fanOut,
   complete,
@@ -439,4 +560,5 @@ module.exports = {
   removeForItems,
   refreshUserSnapshot,
   refreshItemTitle,
+  backfillForUser,
 };

@@ -36,6 +36,14 @@ export const ROLE_LABELS = {
   ADMIN: 'Administrator',
 };
 
+// Mirrors USER_STATUS in backend/src/constants/roles.js. A leaver's account is
+// deactivated rather than deleted - deleting it would orphan the
+// acknowledgement evidence they produced (spec section 7.18).
+export const USER_STATUS_LABELS = {
+  ACTIVE: 'Active',
+  INACTIVE: 'Inactive',
+};
+
 // Mirrors CATEGORY_ABBREVIATION in backend/src/modules/policy/policy.service.js.
 // Used ONLY to show the admin what code a new policy will be given before they
 // commit to it. The server generates the real one and remains authoritative —
