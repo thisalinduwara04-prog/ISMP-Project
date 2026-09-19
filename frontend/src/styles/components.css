@@ -104,23 +104,31 @@
   cursor: not-allowed;
 }
 
+/* The accent, never white on it: lime under white text is unreadable, so the
+   pairing is always --accent-ink (16.4:1). */
 .btn--primary {
-  background: var(--brand);
-  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .btn--primary:hover:not(:disabled) {
-  background: var(--brand-dark);
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
+/* Sits on frosted cards as often as on the canvas, so it carries its own light
+   surface rather than being transparent - a transparent outline button on glass
+   reads as a hole in the card. */
 .btn--ghost {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.6);
   border-color: var(--line);
   color: var(--ink);
 }
 
 .btn--ghost:hover {
-  background: var(--canvas);
+  background: var(--surface);
+  border-color: var(--brand);
 }
 
 .btn--sm {
@@ -608,6 +616,10 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+.actions--spaced {
+  margin-top: 1rem;
 }
 
 /* --- Spinner ------------------------------------------------------------ */

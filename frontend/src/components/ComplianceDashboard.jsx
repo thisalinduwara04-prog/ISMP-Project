@@ -2,11 +2,18 @@ import { useCallback, useEffect, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 import Alert from './Alert';
+import EmptyState from './EmptyState';
 import Spinner from './Spinner';
 import ComplianceSummary from './ComplianceSummary';
+import Widget from './Widget';
+import { useToast } from './ToastProvider';
 import { DEPARTMENT_LABELS } from '../constants';
 import { exportCompliance, getDashboard, getOutstanding, sendReminder } from '../api/compliance';
 import { stepUp } from '../api/auth';
+
+// Recharts takes a colour value, not a class, so the theme's --brand graphite
+// is repeated here. Change one and change the other.
+const BAR_COLOUR = '#2c3a4b';
 
 const ITEM_TYPES = [
   { value: 'POLICY', label: 'Policies' },
@@ -66,8 +73,8 @@ const ComplianceDashboard = ({ fixedDepartment = null, allowOrganisation = false
   const [appliedFilters, setAppliedFilters] = useState(() => emptyFilters(fixedDepartment || ''));
   const [dashboard, setDashboard] = useState(null);
   const [outstanding, setOutstanding] = useState(null);
+  const { notify } = useToast();
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(true);
   const [action, setAction] = useState('');
   const [stepUpRequired, setStepUpRequired] = useState(false);
@@ -112,12 +119,11 @@ const ComplianceDashboard = ({ fixedDepartment = null, allowOrganisation = false
   const remind = async (row) => {
     setAction(`remind-${row._id}`);
     setError('');
-    setNotice('');
     try {
       const result = await sendReminder({ userId: row._id, department: fixedDepartment || appliedFilters.department || undefined });
-      setNotice(result.notificationsCreated
-        ? `Reminder created for ${row.user.fullName}.`
-        : `${row.user.fullName} was already reminded within the last 24 hours.`);
+      notify(result.notificationsCreated
+        ? { tone: 'success', title: 'Reminder sent', message: `${row.user.fullName} has been notified about their outstanding items.` }
+        : { tone: 'info', title: 'Already reminded', message: `${row.user.fullName} was reminded within the last 24 hours.` });
       await load();
     } catch (reminderError) {
       setError(reminderError.message);
@@ -131,9 +137,9 @@ const ComplianceDashboard = ({ fixedDepartment = null, allowOrganisation = false
     setError('');
     try {
       const result = await exportCompliance(format, appliedFilters);
-      setNotice(result.queued
-        ? `The ${format} report is being generated and will be emailed when ready.`
-        : `${format} report downloaded.`);
+      notify(result.queued
+        ? { tone: 'info', title: `${format} report queued`, message: 'It is being generated and will be emailed to you when ready.' }
+        : { tone: 'success', title: `${format} report downloaded` });
     } catch (exportError) {
       setError(exportError.message);
     } finally {
@@ -143,12 +149,20 @@ const ComplianceDashboard = ({ fixedDepartment = null, allowOrganisation = false
 
   if (busy && !dashboard) return <Spinner label="Loading compliance data" />;
 
+  // Everything below is an item of one .widget-grid. Rows add up to four:
+  //   filters (4) · gauge (2) + overdue (1) + outstanding (1)
+  //   department chart (4, organisation view only) · outstanding staff (4)
+  // The chart is left off the department view: with one department in scope it
+  // would be a single bar repeating the gauge beside it.
   return (
-    <>
-      {error && <Alert tone="error" title="Compliance data unavailable">{error}</Alert>}
-      {notice && <Alert tone="info" title="Action completed">{notice}</Alert>}
+    <div className="widget-grid">
+      {error && (
+        <div className="widget-grid__full">
+          <Alert tone="error" title="Compliance data unavailable">{error}</Alert>
+        </div>
+      )}
       {stepUpRequired && (
-        <form className="card step-up" onSubmit={async (event) => {
+        <form className="card step-up widget-grid__full" onSubmit={async (event) => {
           event.preventDefault();
           setAction('step-up');
           setError('');
@@ -170,7 +184,7 @@ const ComplianceDashboard = ({ fixedDepartment = null, allowOrganisation = false
       )}
 
       <form
-        className="card filters"
+        className="card filters widget-grid__full"
         onSubmit={(event) => {
           event.preventDefault();
           event.currentTarget.querySelectorAll('details[open]').forEach((dropdown) => dropdown.removeAttribute('open'));
@@ -220,33 +234,49 @@ const ComplianceDashboard = ({ fixedDepartment = null, allowOrganisation = false
       </form>
 
       {dashboard && dashboard.summary.total === 0 ? (
-        <section className="card"><h2>No compliance data yet</h2><p className="muted">No policies or training match this scope and filter.</p></section>
+        <div className="widget-grid__full">
+          <EmptyState title="No compliance data yet" body="No policies or training match this scope and filter." />
+        </div>
       ) : dashboard && (
         <>
-          <ComplianceSummary summary={dashboard.summary} />
-          <section className="card chart-card">
-            <div className="section-heading"><div><h2>Compliance by department</h2><p className="muted">As of {new Date(dashboard.asOf).toLocaleString()}{dashboard.cached ? ' · cached' : ''}</p></div></div>
-            <div className="chart" role="img" aria-label="Department compliance percentage bar chart">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dashboard.departments.map((row) => ({ ...row, name: DEPARTMENT_LABELS[row.department] || row.department }))}>
-                  <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis domain={[0, 100]} unit="%" />
-                  <Tooltip formatter={(value) => [`${value}%`, 'Compliance']} /><Bar dataKey="compliancePercent" fill="#2563eb" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
+          <ComplianceSummary
+            summary={dashboard.summary}
+            scopeLabel={fixedDepartment ? 'in your department' : 'in this scope'}
+          />
+          {allowOrganisation && (
+            <Widget
+              title="Compliance by department"
+              subtitle={`As of ${new Date(dashboard.asOf).toLocaleString()}${dashboard.cached ? ' · cached' : ''}`}
+              span="full"
+            >
+              <div className="chart" role="img" aria-label="Department compliance percentage bar chart">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={dashboard.departments.map((row) => ({ ...row, name: DEPARTMENT_LABELS[row.department] || row.department }))}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e3e5e8" />
+                    <XAxis dataKey="name" tickLine={false} axisLine={false} />
+                    <YAxis domain={[0, 100]} unit="%" tickLine={false} axisLine={false} />
+                    <Tooltip cursor={{ fill: 'rgba(20, 22, 26, 0.04)' }} formatter={(value) => [`${value}%`, 'Compliance']} />
+                    <Bar dataKey="compliancePercent" fill={BAR_COLOUR} radius={[8, 8, 0, 0]} maxBarSize={56} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Widget>
+          )}
         </>
       )}
 
-      <section className="card">
-        <div className="section-heading">
-          <div><h2>Outstanding staff</h2><p className="muted">Ordered by oldest due item.</p></div>
+      <Widget
+        title="Outstanding staff"
+        subtitle={outstanding?.items.length ? `${outstanding.items.length} people · oldest due item first` : 'Ordered by oldest due item'}
+        span="full"
+        action={(
           <div className="button-row">
             <button className="btn btn--ghost btn--sm" type="button" disabled={!!action} onClick={() => download('PDF')}>{action === 'export-PDF' ? 'Preparing…' : 'Export PDF'}</button>
             <button className="btn btn--ghost btn--sm" type="button" disabled={!!action} onClick={() => download('XLSX')}>{action === 'export-XLSX' ? 'Preparing…' : 'Export Excel'}</button>
           </div>
-        </div>
-        {!outstanding?.items.length ? <p className="muted">Everyone in this scope is compliant.</p> : (
+        )}
+      >
+        {!outstanding?.items.length ? <EmptyState title="Everyone is compliant" body="Nobody in this scope has an outstanding item." /> : (
           <div className="table-scroll">
             <table className="data-table">
               <thead><tr><th>Employee</th><th>Department</th><th>Outstanding</th><th>Overdue</th><th>Oldest due</th><th><span className="sr-only">Actions</span></th></tr></thead>
@@ -261,8 +291,8 @@ const ComplianceDashboard = ({ fixedDepartment = null, allowOrganisation = false
             </table>
           </div>
         )}
-      </section>
-    </>
+      </Widget>
+    </div>
   );
 };
 

@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Alert from '../../components/Alert';
 import Spinner from '../../components/Spinner';
 import MarkdownText from '../../components/MarkdownText';
+import { useToast } from '../../components/ToastProvider';
 import { fetchVersion, acknowledgeVersion, fetchPolicy } from '../../api/policies';
 import { formatDate, formatDateTime, formatDuration } from '../../utils/format';
 
@@ -21,6 +22,7 @@ const MINIMUM_SECONDS = 15;
 const PolicyReader = () => {
   const { policyId, versionId } = useParams();
   const navigate = useNavigate();
+  const { notify } = useToast();
 
   const [version, setVersion] = useState(null);
   const [loadError, setLoadError] = useState(null);
@@ -103,6 +105,12 @@ const PolicyReader = () => {
     try {
       const data = await acknowledgeVersion(policyId, versionId);
       setReceipt(data.acknowledgement);
+      // The receipt on the page is the record; the toast is only the moment.
+      notify({
+        tone: 'success',
+        title: 'Acknowledgement recorded',
+        message: `${version.title}, version ${data.acknowledgement.versionNumber}`,
+      });
     } catch (error) {
       // 409: a newer version was published while this page was open. The old
       // wording is no longer what anyone is being asked to agree to, so the
@@ -120,8 +128,14 @@ const PolicyReader = () => {
           setSubmitError('This policy has been updated. Please return to the list and open it again.');
         }
       } else if (error.status === 410) {
-        // Withdrawn mid-read. There is nothing left to acknowledge.
-        setNotice('This policy has been withdrawn and no longer needs to be acknowledged.');
+        // Withdrawn mid-read. There is nothing left to acknowledge. A toast
+        // rather than page state: this page is left immediately, and a notice
+        // set on it would never be seen.
+        notify({
+          tone: 'warning',
+          title: 'Policy withdrawn',
+          message: 'It no longer needs to be acknowledged.',
+        });
         navigate('/policies', { replace: true });
       } else {
         setSubmitError(error.message);

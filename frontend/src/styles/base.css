@@ -1,23 +1,59 @@
 /* ---------------------------------------------------------------------------
    Design tokens, reset and typography.
+
+   These tokens are the whole application's theme, not one role's. The
+   administrator area was themed first - warm near-white canvas, frosted
+   surfaces, a single lime accent - and the tokens live here rather than in
+   shell.css so employees, managers and the sign-in screen get the same
+   material instead of a second, bluer one.
+
    Every colour pairing used against --canvas or --surface clears WCAG 2.1 AA
    contrast (NFR-USE-03).
    --------------------------------------------------------------------------- */
 
 :root {
   /* Text */
-  --ink: #10151c;
+  --ink: #14161a;
   --ink-soft: #55606f;
 
-  /* Surfaces */
-  --canvas: #f4f6f9;
+  /* Surfaces.
+     --canvas is the flat fallback colour; --canvas-wash paints it with three
+     faint colour pools so the page reads as a tinted surface rather than flat
+     grey. The alphas are held low deliberately: text sits directly on this, and
+     where all three pools overlap the blend is #d0dce6, against which
+     --ink-soft measures 4.58:1 - just clearing AA. Raising any alpha pushes
+     that under 4.5:1 and breaks NFR-USE-03. */
+  --canvas: #efefed;
+  --canvas-wash:
+    radial-gradient(1100px 620px at 12% 105%, rgba(125, 200, 190, 0.15), transparent 62%),
+    radial-gradient(900px 540px at 55% 115%, rgba(130, 170, 230, 0.13), transparent 62%),
+    radial-gradient(760px 520px at 96% 92%, rgba(190, 170, 230, 0.10), transparent 62%);
   --surface: #ffffff;
-  --line: #dfe4ea;
+  --line: #e3e5e8;
 
-  /* Brand */
-  --brand: #16457a;
-  --brand-dark: #0f3159;
-  --brand-tint: #eaf1fa;
+  /* The frosted variant of --surface, used by widgets, cards and tables inside
+     the application shell. Translucent, not white: every text pairing was
+     checked against the darkest canvas point showing through, worst case
+     5.95:1. Panels that carry a lot of text and sit above a scrim - the modal -
+     stay opaque instead. */
+  --surface-frosted: rgba(255, 255, 255, 0.78);
+  --surface-blur: saturate(160%) blur(20px);
+
+  /* Brand.
+     Graphite rather than the blue this project started with. Everything
+     incidental - focus rings, progress fills, checkbox accents, timeline dots -
+     takes this, which leaves the lime below as the single accent in the
+     interface rather than one of two competing ones. */
+  --brand: #2c3a4b;
+  --brand-dark: #1b2530;
+  --brand-tint: #eceff2;
+
+  /* Accent. Carries primary actions and the active navigation item. Always
+     paired with --accent-ink, never with white: lime under white text is
+     unreadable. */
+  --accent: #dff264;
+  --accent-hover: #d2e650;
+  --accent-ink: #1b2007;
 
   /* Status */
   --danger: #a4262c;
@@ -30,11 +66,25 @@
   --info-tint: #eaf5f9;
   --info-line: #bcdde8;
   --ok: #1a6b41;
+  --ok-tint: #edf7f1;
+  --ok-line: #b9ddc9;
 
   /* Shape */
-  --radius: 10px;
-  --radius-sm: 8px;
-  --shadow: 0 1px 2px rgba(16, 21, 28, 0.06), 0 8px 24px rgba(16, 21, 28, 0.06);
+  --radius: 14px;
+  --radius-sm: 10px;
+  --radius-lg: 20px;
+  --pill: 999px;
+
+  /* The floating effect: a tight contact shadow for the edge, plus a wide soft
+     one for the drop. Two layers rather than one - a single large blur reads as
+     haze, while the near layer is what makes a panel look lifted off the canvas
+     rather than printed on it. */
+  --shadow:
+    0 1px 2px rgba(20, 22, 26, 0.04),
+    0 10px 30px rgba(20, 22, 26, 0.07);
+  --shadow-hover:
+    0 2px 4px rgba(20, 22, 26, 0.06),
+    0 18px 44px rgba(20, 22, 26, 0.11);
 
   /* A comfortable thumb target for warehouse staff on a phone (NFR-USE-02). */
   --touch-target: 44px;
@@ -54,7 +104,11 @@ body,
 
 body {
   margin: 0;
-  background: var(--canvas);
+  background-color: var(--canvas);
+  background-image: var(--canvas-wash);
+  /* Pinned so the colour pools stay put instead of tiling down a long page. */
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   color: var(--ink);
   font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
   font-size: 16px;
@@ -118,4 +172,13 @@ p:last-child { margin-bottom: 0; }
   clip: rect(0 0 0 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* Without backdrop-filter there is no blur to separate text from whatever
+   shows through, so the frosted surfaces go nearly opaque instead. Safari
+   below 18 and Firefox with the pref disabled land here. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --surface-frosted: rgba(255, 255, 255, 0.96);
+  }
 }

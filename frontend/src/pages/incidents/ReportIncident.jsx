@@ -7,6 +7,7 @@ import Field from '../../components/Field';
 import FileInput from '../../components/FileInput';
 import Select from '../../components/Select';
 import Textarea from '../../components/Textarea';
+import { useToast } from '../../components/ToastProvider';
 import { submitIncident } from '../../api/incidents';
 import {
   ATTACHMENT_ACCEPT,
@@ -30,6 +31,7 @@ const EMPTY = { type: '', title: '', description: '', occurredAt: '', attachment
 // from the type (US-037) - an employee who has just lost a laptop should not
 // also have to decide how bad that is.
 const ReportIncident = () => {
+  const { notify } = useToast();
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -49,6 +51,7 @@ const ReportIncident = () => {
     try {
       const { incident } = await submitIncident(form);
       setSubmitted(incident);
+      notify({ tone: 'success', title: 'Report submitted', message: `Reference ${incident.reference}` });
     } catch (err) {
       setError(err);
     } finally {
@@ -74,7 +77,7 @@ const ReportIncident = () => {
             An administrator reviews every report. You can follow the status of this one, and see
             any notes added when it is resolved, on your reports page.
           </p>
-          <div className="actions" style={{ marginTop: '1rem' }}>
+          <div className="actions actions--spaced">
             <Link to="/incidents" className="btn btn--primary">
               View my reports
             </Link>

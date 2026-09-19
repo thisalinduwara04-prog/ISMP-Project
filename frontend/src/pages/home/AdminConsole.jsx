@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 
 import { getDashboard } from '../../api/compliance';
 import { listIncidents } from '../../api/incidents';
@@ -8,8 +7,8 @@ import { fetchAuditLogs } from '../../api/audit';
 import ActivityList from '../../components/ActivityList';
 import DepartmentBars from '../../components/DepartmentBars';
 import SeverityPie from '../../components/SeverityPie';
-import Spinner from '../../components/Spinner';
 import StatCard from '../../components/StatCard';
+import Widget from '../../components/Widget';
 
 // M1 admin dashboard.
 //
@@ -80,9 +79,10 @@ const AdminConsole = () => {
   const summary = compliance.data?.summary;
 
   return (
-    <div className="admin-grid">
+    <div className="widget-grid">
       <StatCard
         label="Open incidents"
+        icon="incidents"
         value={incidents.data ? (openCount === 0 ? 'No open incidents' : openCount) : null}
         sub={escalated > 0 ? `${escalated} high or critical need attention` : 'open or in review'}
         to="/incidents"
@@ -94,6 +94,7 @@ const AdminConsole = () => {
 
       <StatCard
         label="Compliance"
+        icon="shield"
         value={summary ? `${summary.compliancePercent}%` : null}
         sub="across the organisation"
         to="/compliance"
@@ -103,39 +104,40 @@ const AdminConsole = () => {
 
       <StatCard
         label="Overdue items"
+        icon="clock"
         value={summary ? summary.overdue : null}
         sub="past their due date"
         to="/compliance"
+        tone={summary?.overdue > 0 ? 'alert' : 'default'}
         loading={!compliance.data && !compliance.error}
         error={compliance.error}
       />
 
-      <Link to="/incidents" className="widget admin-grid__half">
-        <div className="widget__head">
-          <h2 className="widget__title">Recent incidents by severity</h2>
-          <p className="widget__subtitle">latest {RECENT_LIMIT}</p>
-        </div>
-        {incidents.error
-          ? <p className="muted">{incidents.error}</p>
-          : !incidents.data
-            ? <Spinner label="Loading incidents…" />
-            : <SeverityPie counts={tallyBySeverity(recent)} />}
-      </Link>
+      <Widget
+        title="Recent incidents by severity"
+        subtitle={`latest ${RECENT_LIMIT}`}
+        to="/incidents"
+        loading={!incidents.data && !incidents.error}
+        loadingLabel="Loading incidents…"
+        error={incidents.error}
+      >
+        <SeverityPie counts={tallyBySeverity(recent)} />
+      </Widget>
 
-      <Link to="/compliance" className="widget admin-grid__half">
-        <div className="widget__head">
-          <h2 className="widget__title">Compliance by department</h2>
-          <p className="widget__subtitle">completed assignments</p>
-        </div>
-        {compliance.error
-          ? <p className="muted">{compliance.error}</p>
-          : !compliance.data
-            ? <Spinner label="Loading compliance…" />
-            : <DepartmentBars departments={compliance.data.departments || []} />}
-      </Link>
+      <Widget
+        title="Compliance by department"
+        subtitle="completed assignments"
+        to="/compliance"
+        loading={!compliance.data && !compliance.error}
+        loadingLabel="Loading compliance…"
+        error={compliance.error}
+      >
+        <DepartmentBars departments={compliance.data?.departments || []} />
+      </Widget>
 
       <StatCard
         label="Active users"
+        icon="users"
         value={activeUsers.data ? activeUsers.data.pagination.total : null}
         sub="accounts in use"
         to="/admin/users"
@@ -143,17 +145,17 @@ const AdminConsole = () => {
         error={activeUsers.error}
       />
 
-      <Link to="/admin/audit-logs" className="widget admin-grid__three">
-        <div className="widget__head">
-          <h2 className="widget__title">Recent activity</h2>
-          <p className="widget__subtitle">latest security events</p>
-        </div>
-        {activity.error
-          ? <p className="muted">{activity.error}</p>
-          : !activity.data
-            ? <Spinner label="Loading activity…" />
-            : <ActivityList entries={activity.data.entries || []} />}
-      </Link>
+      <Widget
+        title="Recent activity"
+        subtitle="latest security events"
+        to="/admin/audit-logs"
+        span="three"
+        loading={!activity.data && !activity.error}
+        loadingLabel="Loading activity…"
+        error={activity.error}
+      >
+        <ActivityList entries={activity.data?.entries || []} />
+      </Widget>
     </div>
   );
 };
