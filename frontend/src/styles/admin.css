@@ -1,0 +1,542 @@
+/* ---------------------------------------------------------------------------
+   Administrator area - light, minimal, lime accent.
+
+   The `.admin-shell` root and the `.admin-shell <selector>` overrides below
+   are scoped: only AdminLayout renders `.admin-shell`, so employee and
+   manager screens never match them and the navy system in base.css is left
+   exactly as it was. The widget classes (`.stat-card`, `.widget`, `.pie`,
+   `.dept-bar`, `.activity`, `.admin-grid*`, `.admin-nav*`) are NOT scoped -
+   they are plain global class names. They only avoid colliding because no
+   other stylesheet defines those names, and they only render correctly
+   inside `.admin-shell` because they consume tokens (--admin-ink-soft,
+   --admin-accent, etc.) defined on that root.
+   --------------------------------------------------------------------------- */
+
+.admin-shell {
+  /* The canvas is a warm near-white washed with three faint colour pools
+     rather than a flat grey, and the surfaces above it are translucent and
+     blurred, so cards read as frosted glass floating on it.
+
+     The tint alphas are held low deliberately. Text sits directly on this
+     canvas, and at the point where all three pools overlap the blend is
+     #d0dce6 - where --admin-ink-soft measures 4.58:1, just clearing AA.
+     Raising any alpha pushes that under 4.5:1 and breaks NFR-USE-03. */
+  --admin-canvas-base: #efefed;
+  --admin-canvas:
+    radial-gradient(1100px 620px at 12% 105%, rgba(125, 200, 190, 0.15), transparent 62%),
+    radial-gradient(900px 540px at 55% 115%, rgba(130, 170, 230, 0.13), transparent 62%),
+    radial-gradient(760px 520px at 96% 92%, rgba(190, 170, 230, 0.10), transparent 62%),
+    var(--admin-canvas-base);
+
+  /* Translucent, not white. Every text pairing was re-checked against the
+     darkest canvas point showing through: worst case is 5.95:1. */
+  --admin-surface: rgba(255, 255, 255, 0.78);
+  --admin-surface-blur: saturate(160%) blur(20px);
+
+  --admin-accent: #dff264;
+  --admin-accent-ink: #1b2007;
+  --admin-ink: #14161a;
+  --admin-ink-soft: #55606f;
+  --admin-line: #e3e5e8;
+  --admin-alert: #b3352e;
+  --admin-alert-tint: #fdeeed;
+  --admin-pill: 999px;
+  --admin-radius: 20px;
+
+  /* The floating effect: a tight contact shadow for the edge, plus a wide soft
+     one for the drop. Two layers rather than one - a single large blur reads as
+     haze, while the near layer is what makes the panel look lifted off the
+     canvas rather than printed on it. */
+  --admin-lift:
+    0 1px 2px rgba(20, 22, 26, 0.04),
+    0 10px 30px rgba(20, 22, 26, 0.07);
+  --admin-lift-hover:
+    0 2px 4px rgba(20, 22, 26, 0.06),
+    0 18px 44px rgba(20, 22, 26, 0.11);
+
+  display: grid;
+  grid-template-columns: 248px 1fr;
+  min-height: 100vh;
+  background: var(--admin-canvas);
+  /* Pinned so the colour pools stay put instead of tiling down a long page. */
+  background-attachment: fixed;
+  background-color: var(--admin-canvas-base);
+  color: var(--admin-ink);
+}
+
+/* --- Sidebar --- */
+
+.admin-shell__sidebar {
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.admin-shell__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0 0.5rem;
+  color: var(--admin-ink);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.admin-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.admin-nav__link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: var(--touch-target);
+  padding: 0.625rem 1rem;
+  border-radius: var(--admin-pill);
+  /* Every item is a visible frosted pill, not just the active one - the
+     inactive ones sit lighter, and the accent alone marks the current page. */
+  background: rgba(255, 255, 255, 0.55);
+  -webkit-backdrop-filter: var(--admin-surface-blur);
+  backdrop-filter: var(--admin-surface-blur);
+  box-shadow: var(--admin-lift);
+  color: var(--admin-ink);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  transition: background 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+.admin-nav__link:hover {
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: var(--admin-lift-hover);
+}
+
+.admin-nav__link--active {
+  background: var(--admin-accent);
+  color: var(--admin-accent-ink);
+  font-weight: 600;
+}
+
+.admin-nav__icon {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+}
+
+/* --- Body and header --- */
+
+.admin-shell__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 1.5rem 1.5rem 3rem 0;
+}
+
+.admin-shell__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.admin-shell__title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.admin-shell__subtitle {
+  margin: 0;
+  color: var(--admin-ink-soft);
+  font-size: 0.875rem;
+}
+
+.admin-shell__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3125rem;
+  background: var(--admin-surface);
+  -webkit-backdrop-filter: var(--admin-surface-blur);
+  backdrop-filter: var(--admin-surface-blur);
+  border-radius: var(--admin-pill);
+  box-shadow: var(--admin-lift);
+}
+
+/* --- Round icon controls in the header cluster ---
+   Icon-only, so each carries its name in aria-label and title. 40px keeps them
+   inside the pill while staying a usable target; the cluster sits at the top of
+   a desktop screen, which is why this is allowed under the 44px used for the
+   touch-first screens (NFR-USE-02).
+   --------------------------------------------------------------------------- */
+
+.admin-icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--admin-ink);
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.admin-icon-btn:hover {
+  background: rgba(20, 22, 26, 0.07);
+}
+
+.admin-icon-btn__glyph {
+  width: 18px;
+  height: 18px;
+}
+
+/* The count, not just a dot: "3 unread" is a different decision from "1 unread",
+   and the number is repeated in the link's aria-label for anyone not seeing it. */
+.admin-icon-btn__badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--admin-pill);
+  background: var(--admin-alert);
+  color: #ffffff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.admin-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-left: 0.125rem;
+  border-radius: 50%;
+  background: var(--admin-accent);
+  color: var(--admin-accent-ink);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.admin-shell__main {
+  min-width: 0;
+}
+
+/* --- Dashboard grid --- */
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+/* The grid is 4 columns and the priority card spans 2, so each row has to add
+   up to exactly 4 or the layout wraps leaving holes:
+     row 1  open incidents (2) + compliance (1) + overdue (1)
+     row 2  severity donut (2) + department bars (2)
+     row 3  active users (1) + recent activity (3)              */
+.admin-grid__half { grid-column: span 2; }
+.admin-grid__three { grid-column: span 3; }
+.admin-grid__full { grid-column: 1 / -1; }
+
+/* --- Stat cards --- */
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1.25rem;
+  background: var(--admin-surface);
+  -webkit-backdrop-filter: var(--admin-surface-blur);
+  backdrop-filter: var(--admin-surface-blur);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-lift);
+  color: inherit;
+  text-decoration: none;
+  transition: box-shadow 160ms ease, transform 160ms ease;
+}
+
+.stat-card:hover {
+  box-shadow: var(--admin-lift-hover);
+  transform: translateY(-2px);
+}
+
+.stat-card--wide { grid-column: span 2; }
+
+.stat-card--alert {
+  background: var(--admin-alert-tint);
+  box-shadow: inset 0 0 0 1px var(--admin-alert), var(--admin-lift);
+}
+
+.stat-card--alert:hover {
+  box-shadow: inset 0 0 0 1px var(--admin-alert), var(--admin-lift-hover);
+}
+
+.stat-card__label {
+  font-size: 0.8125rem;
+  color: var(--admin-ink-soft);
+}
+
+.stat-card__value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.stat-card--alert .stat-card__value { color: var(--admin-alert); }
+
+.stat-card__sub {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--admin-ink-soft);
+}
+
+.stat-card--alert .stat-card__sub {
+  color: var(--admin-alert);
+  font-weight: 600;
+}
+
+/* --- Widgets --- */
+
+.widget {
+  display: block;
+  padding: 1.25rem;
+  background: var(--admin-surface);
+  -webkit-backdrop-filter: var(--admin-surface-blur);
+  backdrop-filter: var(--admin-surface-blur);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-lift);
+  color: inherit;
+  text-decoration: none;
+  transition: box-shadow 160ms ease, transform 160ms ease;
+}
+
+.widget:hover {
+  box-shadow: var(--admin-lift-hover);
+  transform: translateY(-2px);
+}
+
+.widget__head { margin-bottom: 1rem; }
+
+.widget__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.widget__subtitle {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--admin-ink-soft);
+}
+
+/* --- Severity donut --- */
+
+.pie {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.pie__legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  min-width: 11rem;
+  list-style: none;
+  font-size: 0.875rem;
+}
+
+.pie__legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pie__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.pie__count {
+  margin-left: auto;
+  padding-left: 1rem;
+  font-weight: 600;
+}
+
+/* --- Department bars --- */
+
+.dept-bar {
+  display: grid;
+  grid-template-columns: 8rem 1fr 3rem;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  margin-bottom: 0.625rem;
+}
+
+.dept-bar__track {
+  height: 8px;
+  border-radius: var(--admin-pill);
+  background: var(--admin-line);
+  overflow: hidden;
+}
+
+.dept-bar__fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--admin-pill);
+  background: var(--admin-accent);
+}
+
+.dept-bar__value {
+  text-align: right;
+  font-weight: 600;
+}
+
+/* --- Activity list --- */
+
+.activity { font-size: 0.875rem; }
+
+.activity__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--admin-line);
+}
+
+.activity__row:last-child { border-bottom: 0; }
+
+.activity__when {
+  color: var(--admin-ink-soft);
+  white-space: nowrap;
+}
+
+/* --- Scoped overrides for shared pages ---
+   /policies, /training and the rest were built for the navy surface. These few
+   rules keep them coherent when an administrator opens them inside this shell.
+   --------------------------------------------------------------------------- */
+
+.admin-shell .card {
+  border-radius: var(--admin-radius);
+  border: 0;
+  box-shadow: var(--admin-lift);
+  /* Shared pages (/policies, /training) get the same frosted surface as the
+     dashboard widgets, so an administrator sees one material throughout. */
+  background: var(--admin-surface);
+  -webkit-backdrop-filter: var(--admin-surface-blur);
+  backdrop-filter: var(--admin-surface-blur);
+}
+
+.admin-shell .table-wrap {
+  border-radius: var(--admin-radius);
+  border: 0;
+  box-shadow: var(--admin-lift);
+  background: var(--admin-surface);
+  -webkit-backdrop-filter: var(--admin-surface-blur);
+  backdrop-filter: var(--admin-surface-blur);
+}
+
+/* Without backdrop-filter there is no blur to separate text from whatever
+   shows through, so the surfaces go nearly opaque instead. Safari below 18
+   and Firefox with the pref disabled land here. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .admin-shell {
+    --admin-surface: rgba(255, 255, 255, 0.96);
+  }
+
+  .admin-nav__link {
+    background: rgba(255, 255, 255, 0.85);
+  }
+}
+
+.admin-shell .btn--primary {
+  background: var(--admin-accent);
+  border-color: var(--admin-accent);
+  color: var(--admin-accent-ink);
+}
+
+.admin-shell .btn--primary:hover:not(:disabled) {
+  background: #d2e650;
+  border-color: #d2e650;
+  color: var(--admin-accent-ink);
+}
+
+/* --- Narrow screens ---
+   The sidebar becomes a horizontal scrolling strip above the content rather
+   than a drawer: no JavaScript, and no new dependency.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .admin-shell { grid-template-columns: 1fr; }
+
+  .admin-shell__sidebar {
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+    overflow-x: auto;
+    padding: 1rem;
+  }
+
+  .admin-nav {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+
+  .admin-nav__link { white-space: nowrap; }
+
+  .admin-shell__body { padding: 0 1rem 2rem; }
+
+  .admin-grid { grid-template-columns: 1fr; }
+
+  .stat-card--wide,
+  .admin-grid__half,
+  .admin-grid__three,
+  .admin-grid__full { grid-column: 1 / -1; }
+}
+
+/* --- Roster rows and the summary panel -------------------------------------
+   The shared rule tints a hovered row with --brand-tint, which is a blue from
+   the employee theme. In here it becomes a lift in the same frosted white the
+   cards use, so nothing blue appears in the admin area.
+   --------------------------------------------------------------------------- */
+
+.admin-shell .table__row--clickable:hover {
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.admin-shell .link-quiet {
+  color: var(--admin-ink);
+}
+
+/* The panel stays opaque rather than frosted. It sits above a dimmed backdrop
+   and carries the most text of anything in the theme - blur behind it would
+   cost legibility for an effect nobody can see through the scrim anyway. */
+.admin-shell .modal__panel {
+  border-radius: var(--admin-radius);
+  background: #ffffff;
+}
