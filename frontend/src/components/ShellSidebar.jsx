@@ -3,6 +3,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { CAPABILITIES, ROLES, homePathFor } from '../constants';
 import Icon from './Icon';
+import logo from '../assets/savikro.png';
 
 // Module-wise navigation, for every role.
 //
@@ -78,7 +79,9 @@ const ShellSidebar = () => {
   return (
     <aside className="app-shell__sidebar">
       <Link to={homePathFor(user)} className="app-shell__brand">
-        <span className="app-shell__mark">SV</span>
+        {/* alt="" deliberately: the company name is spelt out immediately to
+            the right, so describing the logo would announce it twice. */}
+        <img src={logo} alt="" className="brand-logo" />
         <span className="app-shell__brand-text">
           Savikro
           <small>Policy &amp; Compliance</small>

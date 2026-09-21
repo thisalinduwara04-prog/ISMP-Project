@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Alert from '../components/Alert';
 import { useAuth } from '../auth/AuthContext';
 import { homePathFor } from '../constants';
+import logo from '../assets/savikro.png';
 
 const Login = () => {
   const { login } = useAuth();
@@ -44,6 +45,8 @@ const Login = () => {
   return (
     <div className="auth-screen">
       <form className="card auth-card" onSubmit={handleSubmit} noValidate>
+        {/* alt names the company, because on this screen nothing else does. */}
+        <img src={logo} alt="Savikro" className="brand-logo brand-logo--auth" />
         <h1 className="auth-card__title">Sign in</h1>
         <p className="auth-card__subtitle">Use the employee ID issued by your administrator.</p>
 

@@ -5,6 +5,7 @@ import Alert from '../components/Alert';
 import { useToast } from '../components/ToastProvider';
 import { useAuth } from '../auth/AuthContext';
 import { homePathFor } from '../constants';
+import logo from '../assets/savikro.png';
 
 // Mirrors the server-side policy in backend/src/modules/auth/password.service.js.
 // Shown live as the user types so the rules are visible before submitting; the
@@ -57,6 +58,7 @@ const ChangePassword = () => {
   return (
     <div className="auth-screen">
       <form className="card auth-card" onSubmit={handleSubmit} noValidate>
+        <img src={logo} alt="Savikro" className="brand-logo brand-logo--auth" />
         <h1 className="auth-card__title">
           {mustChangePassword ? 'Choose a new password' : 'Change your password'}
         </h1>
