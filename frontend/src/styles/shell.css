@@ -1,0 +1,860 @@
+/* ---------------------------------------------------------------------------
+   The application shell, the dashboard widgets and the toast stack.
+
+   One shell for every role. This started as the administrator area and the
+   employee and manager screens kept a separate navy top-bar layout; they now
+   share this one, so a manager opening /policies and an administrator opening
+   the same screen see the same material. The nav items differ - ShellSidebar
+   filters them by capability - but nothing else does.
+
+   The colours all come from the tokens in base.css. Nothing here defines a
+   colour of its own.
+   --------------------------------------------------------------------------- */
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 248px 1fr;
+  min-height: 100vh;
+}
+
+/* --- Sidebar --- */
+
+.app-shell__sidebar {
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.app-shell__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0 0.5rem;
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.app-shell__brand-text {
+  display: grid;
+  line-height: 1.25;
+}
+
+.app-shell__brand-text small {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.shell-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.shell-nav__link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: var(--touch-target);
+  padding: 0.625rem 1rem;
+  border-radius: var(--pill);
+  /* Every item is a visible frosted pill, not just the active one - the
+     inactive ones sit lighter, and the accent alone marks the current page. */
+  background: rgba(255, 255, 255, 0.55);
+  -webkit-backdrop-filter: var(--surface-blur);
+  backdrop-filter: var(--surface-blur);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  transition: background 140ms ease, box-shadow 140ms ease;
+}
+
+.shell-nav__link:hover {
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: var(--shadow-hover);
+}
+
+.shell-nav__link--active {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.shell-nav__icon {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+}
+
+/* A count beside a nav item - outstanding tasks, unread notifications. Sits
+   inside the pill rather than floating over it, because here there is room for
+   the number to be read rather than glanced at. */
+.shell-nav__count {
+  margin-left: auto;
+  min-width: 1.375rem;
+  padding: 0 0.375rem;
+  border-radius: var(--pill);
+  background: rgba(20, 22, 26, 0.08);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.shell-nav__link--active .shell-nav__count {
+  background: rgba(27, 32, 7, 0.14);
+}
+
+.shell-nav__count--alert {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+/* --- Body and header --- */
+
+.app-shell__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 1.5rem 1.5rem 3rem 0;
+}
+
+.app-shell__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.app-shell__title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.app-shell__subtitle {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+.app-shell__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3125rem;
+  background: var(--surface-frosted);
+  -webkit-backdrop-filter: var(--surface-blur);
+  backdrop-filter: var(--surface-blur);
+  border-radius: var(--pill);
+  box-shadow: var(--shadow);
+}
+
+/* --- Round icon controls in the header cluster ---
+   Icon-only, so each carries its name in aria-label and title. 40px keeps them
+   inside the pill while staying a usable target; the cluster sits at the top of
+   a desktop screen, which is why this is allowed under the 44px used for the
+   touch-first screens (NFR-USE-02).
+   --------------------------------------------------------------------------- */
+
+.shell-icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.shell-icon-btn:hover {
+  background: rgba(20, 22, 26, 0.07);
+}
+
+.shell-icon-btn__glyph {
+  width: 18px;
+  height: 18px;
+}
+
+/* The count, not just a dot: "3 unread" is a different decision from "1 unread",
+   and the number is repeated in the link's aria-label for anyone not seeing it. */
+.shell-icon-btn__badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--pill);
+  background: var(--danger);
+  color: #ffffff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.shell-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-left: 0.125rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.app-shell__main {
+  min-width: 0;
+}
+
+/* --- Dashboard grid ---
+   Four columns. A row has to add up to exactly 4 or the layout wraps leaving
+   holes, so every span class below is used in a set that totals four.
+   --------------------------------------------------------------------------- */
+
+.widget-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.widget-grid__half { grid-column: span 2; }
+.widget-grid__three { grid-column: span 3; }
+.widget-grid__full { grid-column: 1 / -1; }
+
+/* Two rows high, stretched to fill them, so a tall panel can sit beside two
+   rows of stat cards instead of leaving a gap under the shorter ones. */
+.widget-grid__tall {
+  grid-row: span 2;
+  align-self: stretch;
+}
+
+/* A full-width heading between two bands of widgets, so a long dashboard reads
+   as sections rather than one undifferentiated field of cards. */
+.widget-grid__band {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 0.5rem 0 -0.25rem;
+}
+
+.widget-grid__band h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.widget-grid__band p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+/* --- Stat cards --- */
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1.25rem;
+  background: var(--surface-frosted);
+  -webkit-backdrop-filter: var(--surface-blur);
+  backdrop-filter: var(--surface-blur);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  color: inherit;
+  text-decoration: none;
+  transition: box-shadow 160ms ease, transform 160ms ease;
+}
+
+.stat-card:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+.stat-card--static:hover {
+  box-shadow: var(--shadow);
+  transform: none;
+}
+
+.stat-card--wide { grid-column: span 2; }
+
+.stat-card--alert {
+  background: var(--danger-tint);
+  box-shadow: inset 0 0 0 1px var(--danger), var(--shadow);
+}
+
+.stat-card--alert:hover {
+  box-shadow: inset 0 0 0 1px var(--danger), var(--shadow-hover);
+}
+
+/* The counterpart to --alert, for a figure that is good news. Same rule
+   applies: the tone is never the only signal, the `sub` line says it in words. */
+.stat-card--ok {
+  box-shadow: inset 0 0 0 1px var(--ok-line), var(--shadow);
+}
+
+.stat-card--ok:hover {
+  box-shadow: inset 0 0 0 1px var(--ok-line), var(--shadow-hover);
+}
+
+.stat-card__label {
+  display: flex;
+  align-items: center;
+  gap: 0.4375rem;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+.stat-card__label svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+}
+
+.stat-card__value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.stat-card--alert .stat-card__value { color: var(--danger); }
+.stat-card--ok .stat-card__value { color: var(--ok); }
+
+.stat-card__sub {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+.stat-card__sub svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+.stat-card--alert .stat-card__sub {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.stat-card--ok .stat-card__sub {
+  color: var(--ok);
+  font-weight: 600;
+}
+
+/* --- Widgets --- */
+
+.widget {
+  display: block;
+  padding: 1.25rem;
+  background: var(--surface-frosted);
+  -webkit-backdrop-filter: var(--surface-blur);
+  backdrop-filter: var(--surface-blur);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  color: inherit;
+  text-decoration: none;
+  transition: box-shadow 160ms ease, transform 160ms ease;
+}
+
+/* Only a widget that is itself a link lifts on hover. A widget that merely
+   contains links must not, or the whole panel appears clickable when it is not. */
+a.widget:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+.widget__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.widget__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.widget__subtitle {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+/* A secondary control or link sitting under the widget's content, set apart by
+   a rule so it does not read as part of the data above it. */
+.widget__foot {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 1rem 0 0;
+  padding-top: 0.875rem;
+  border-top: 1px solid var(--line);
+}
+
+/* --- Readiness gauge ---
+   An SVG ring with the percentage in the middle and a legend beside it. The
+   legend repeats every figure as text, so the ring is decoration and the
+   numbers are the content (NFR-USE-03).
+   --------------------------------------------------------------------------- */
+
+.gauge {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.gauge__ring {
+  flex: 0 0 auto;
+}
+
+/* Coloured here rather than in SVG attributes: var() in a presentation
+   attribute is not reliable across browsers, but in a stylesheet it is. */
+.gauge__track { stroke: var(--line); }
+.gauge__arc { stroke: var(--brand); }
+.gauge__arc--alert { stroke: var(--danger); }
+
+.gauge__value {
+  fill: var(--ink);
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.gauge__legend {
+  display: grid;
+  gap: 0.75rem;
+  flex: 1 1 11rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gauge__row {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+}
+
+.gauge__row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.gauge__row-value {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* A slim bar under a legend row. Graphite on the line colour rather than the
+   accent, which does not carry enough contrast against it to be a meaningful
+   graphic on its own. */
+.meter {
+  display: block;
+  height: 6px;
+  border-radius: var(--pill);
+  background: var(--line);
+  overflow: hidden;
+}
+
+.meter__fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--pill);
+  background: var(--brand);
+}
+
+.meter__fill--overdue { background: var(--danger); }
+
+/* --- Severity donut --- */
+
+.pie {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.pie__legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  min-width: 11rem;
+  list-style: none;
+  font-size: 0.875rem;
+}
+
+.pie__legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pie__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.pie__count {
+  margin-left: auto;
+  padding-left: 1rem;
+  font-weight: 600;
+}
+
+/* --- Department bars --- */
+
+.dept-bar {
+  display: grid;
+  grid-template-columns: 8rem 1fr 3rem;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  margin-bottom: 0.625rem;
+}
+
+.dept-bar__track {
+  height: 8px;
+  border-radius: var(--pill);
+  background: var(--line);
+  overflow: hidden;
+}
+
+.dept-bar__fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--pill);
+  background: var(--accent);
+}
+
+.dept-bar__value {
+  text-align: right;
+  font-weight: 600;
+}
+
+/* --- Activity list --- */
+
+.activity { font-size: 0.875rem; }
+
+.activity__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.activity__row:last-child { border-bottom: 0; }
+
+.activity__when {
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+/* --- Compact feed, for the notifications widget ---
+   A row per item, unread ones marked by a dot AND by their weight, so the state
+   survives greyscale.
+   --------------------------------------------------------------------------- */
+
+.feed {
+  display: grid;
+  gap: 0.125rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.feed__item {
+  display: grid;
+  grid-template-columns: 0.5rem 1fr;
+  gap: 0.625rem;
+  align-items: start;
+  padding: 0.625rem 0.5rem;
+  margin: 0 -0.5rem;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  text-decoration: none;
+  transition: background 140ms ease;
+}
+
+.feed__item:hover {
+  background: var(--brand-tint);
+}
+
+.feed__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-top: 0.4375rem;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.feed__item--unread .feed__dot { background: var(--brand); }
+.feed__item--unread .feed__title { font-weight: 700; }
+
+.feed__body { min-width: 0; }
+
+.feed__title {
+  display: block;
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+.feed__when {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+/* --- Toasts ---
+   Transient confirmation for something the user just did: a reminder sent, a
+   policy acknowledged, a report filed. Errors that need acting on stay as an
+   .alert on the page, because a message that disappears is no use for one.
+
+   The stack is a live region, so each toast is announced as it arrives. It is
+   pointer-events:none with the toasts themselves re-enabling, so the empty
+   column does not swallow clicks on the page underneath.
+   --------------------------------------------------------------------------- */
+
+.toast-stack {
+  position: fixed;
+  z-index: 200;
+  right: 1rem;
+  bottom: 1rem;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 0.5rem;
+  width: min(23rem, calc(100vw - 2rem));
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border-radius: var(--radius);
+  border-left: 4px solid var(--brand);
+  background: var(--surface);
+  box-shadow: var(--shadow-hover);
+  pointer-events: auto;
+  animation: toast-in 200ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(1rem) scale(0.98);
+  }
+}
+
+.toast--success { border-left-color: var(--ok); }
+.toast--error { border-left-color: var(--danger); }
+.toast--warning { border-left-color: var(--warning); }
+.toast--info { border-left-color: var(--info); }
+
+/* The glyph is a second signal for the tone the border colour carries, so the
+   four kinds are distinguishable without colour (NFR-USE-03). */
+.toast__glyph {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-top: 0.125rem;
+}
+
+.toast--success .toast__glyph { color: var(--ok); }
+.toast--error .toast__glyph { color: var(--danger); }
+.toast--warning .toast__glyph { color: var(--warning); }
+.toast--info .toast__glyph { color: var(--info); }
+
+.toast__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.875rem;
+}
+
+.toast__title {
+  display: block;
+  font-weight: 700;
+}
+
+.toast__message {
+  margin: 0.125rem 0 0;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.toast__close {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.toast__close:hover {
+  background: var(--brand-tint);
+  color: var(--ink);
+}
+
+/* --- Frosted treatment for the shared screens ---
+   /policies, /training, /incidents and the rest are built from .card, .table-wrap
+   and .task-row. Inside the shell they take the same frosted surface as the
+   dashboard widgets, so one material runs through the whole application.
+   --------------------------------------------------------------------------- */
+
+.app-shell .card,
+.app-shell .table-wrap,
+.app-shell .task-row,
+.app-shell .policy-card,
+.app-shell .empty-state,
+.app-shell .builder__list,
+.app-shell .task {
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--surface-frosted);
+  -webkit-backdrop-filter: var(--surface-blur);
+  backdrop-filter: var(--surface-blur);
+  box-shadow: var(--shadow);
+}
+
+.app-shell .card,
+.app-shell .table-wrap {
+  border-radius: var(--radius-lg);
+}
+
+.app-shell .empty-state {
+  /* Keeps the dashed edge that says "legitimately empty" rather than "failed
+     to load", on top of the frosted surface. */
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.app-shell .task-row:hover,
+.app-shell .policy-card:hover {
+  border-color: transparent;
+  box-shadow: var(--shadow-hover);
+}
+
+/* The overdue edge is a box-shadow rather than a border now, because the border
+   was dropped above - without this, "late" would lose its non-colour signal. */
+.app-shell .task-row--overdue,
+.app-shell .policy-card--overdue {
+  box-shadow: inset 4px 0 0 var(--danger), var(--shadow);
+}
+
+.app-shell .task-row--overdue:hover,
+.app-shell .policy-card--overdue:hover {
+  box-shadow: inset 4px 0 0 var(--danger), var(--shadow-hover);
+}
+
+/* Same reason for the cards that carried a coloured left border: an unread
+   notification and the one-time credential panel. */
+.app-shell .notification--unread,
+.app-shell .credential {
+  box-shadow: inset 4px 0 0 var(--brand), var(--shadow);
+}
+
+/* A form field on a frosted card needs to read as a well cut into it, so it
+   stays opaque rather than becoming a second layer of glass. */
+.app-shell .field__input {
+  background: var(--surface);
+}
+
+/* The panel stays opaque rather than frosted. It sits above a dimmed backdrop
+   and carries the most text of anything in the theme - blur behind it would
+   cost legibility for an effect nobody can see through the scrim anyway. */
+.app-shell .modal__panel {
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+/* --- Narrow screens ---
+   The sidebar becomes a horizontal scrolling strip above the content rather
+   than a drawer: no JavaScript, and no new dependency.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .app-shell { grid-template-columns: 1fr; }
+
+  .app-shell__sidebar {
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+    overflow-x: auto;
+    padding: 1rem;
+  }
+
+  .app-shell__brand-text small { display: none; }
+
+  .shell-nav {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+
+  .shell-nav__link { white-space: nowrap; }
+
+  .app-shell__body { padding: 0 1rem 2rem; }
+
+  .app-shell__title { font-size: 1.5rem; }
+
+  .widget-grid { grid-template-columns: 1fr; }
+
+  .stat-card--wide,
+  .widget-grid__half,
+  .widget-grid__three,
+  .widget-grid__full { grid-column: 1 / -1; }
+
+  .widget-grid__tall { grid-row: auto; }
+}
+
+@media (max-width: 30rem) {
+  /* Full width at the bottom of the screen, where a phone's thumb already is. */
+  .toast-stack {
+    right: 0.5rem;
+    left: 0.5rem;
+    bottom: 0.5rem;
+    width: auto;
+  }
+}

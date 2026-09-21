@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import Alert from '../components/Alert';
+import { useToast } from '../components/ToastProvider';
 import { useAuth } from '../auth/AuthContext';
 import { homePathFor } from '../constants';
+import logo from '../assets/savikro.png';
 
 // Mirrors the server-side policy in backend/src/modules/auth/password.service.js.
 // Shown live as the user types so the rules are visible before submitting; the
@@ -19,6 +21,7 @@ const RULES = [
 const ChangePassword = () => {
   const { changePassword, mustChangePassword } = useAuth();
   const navigate = useNavigate();
+  const { notify } = useToast();
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -37,6 +40,13 @@ const ChangePassword = () => {
 
     try {
       const { user: updated } = await changePassword(currentPassword, newPassword);
+      // The screen is left straight away, so the confirmation has to travel
+      // with the user rather than live on this page.
+      notify({
+        tone: 'success',
+        title: 'Password updated',
+        message: 'You have been signed out on every other device.',
+      });
       navigate(homePathFor(updated), { replace: true });
     } catch (err) {
       setError(err);
@@ -48,6 +58,7 @@ const ChangePassword = () => {
   return (
     <div className="auth-screen">
       <form className="card auth-card" onSubmit={handleSubmit} noValidate>
+        <img src={logo} alt="Savikro" className="brand-logo brand-logo--auth" />
         <h1 className="auth-card__title">
           {mustChangePassword ? 'Choose a new password' : 'Change your password'}
         </h1>

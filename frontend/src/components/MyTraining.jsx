@@ -1,21 +1,21 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import Alert from './Alert';
-import Spinner from './Spinner';
+import EmptyState from './EmptyState';
+import Widget from './Widget';
 import { fetchModules } from '../api/training';
 import { dueDescription } from '../utils/format';
 
-// The caller's own outstanding training, for the landing pages. The sibling of
+// The caller's own outstanding training, as a dashboard widget. The sibling of
 // MyPolicies, and shown to every role for the same reason: a manager is an
 // employee too, and their own assigned training is theirs to complete.
 //
 // Only what is outstanding. A module whose quiz has been passed leaves the list
 // and stays available under Training, where the score and every attempt remain
 // on the record.
-const MyTraining = () => {
+const MyTraining = ({ span = 'half' }) => {
   const [outstanding, setOutstanding] = useState(null);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -23,7 +23,9 @@ const MyTraining = () => {
     fetchModules()
       .then((data) => {
         if (!active) return;
-        setOutstanding(data.modules.filter((module) => !module.task?.quiz?.passed));
+        const open = data.modules.filter((module) => !module.task?.quiz?.passed);
+        open.sort((a, b) => (b.task?.status === 'OVERDUE') - (a.task?.status === 'OVERDUE'));
+        setOutstanding(open);
       })
       .catch((loadError) => active && setError(loadError.message));
 
@@ -32,74 +34,66 @@ const MyTraining = () => {
     };
   }, []);
 
-  if (error) {
-    return (
-      <Alert tone="error" title="Could not load your training">
-        {error}
-      </Alert>
-    );
-  }
-
-  if (!outstanding) return <Spinner label="Loading your training…" />;
-
-  if (outstanding.length === 0) {
-    return (
-      <section className="card">
-        <h2>No training outstanding</h2>
-        <p className="muted">
-          Modules assigned to you will appear here. You complete one by working through its sections
-          and passing the quiz at the end.
-        </p>
-        <p>
-          <Link to="/training" className="btn btn--ghost btn--sm">
-            View all training
-          </Link>
-        </p>
-      </section>
-    );
-  }
+  const count = outstanding?.length || 0;
 
   return (
-    <section>
-      <h2>{outstanding.length} training to complete</h2>
-      <ul className="task-list">
-        {outstanding.map((module) => {
-          const task = module.task || {};
-
-          return (
-            <li key={module.id}>
-              <Link
-                className={`task-row${task.status === 'OVERDUE' ? ' task-row--overdue' : ''}`}
-                to={`/training/modules/${module.id}`}
-              >
-                <span className="task-row__main">
-                  <span className="task-row__title">{module.title}</span>
-                  <span className="task-row__meta">
-                    {task.percentComplete === 100
-                      ? 'Content finished — the quiz is unlocked'
-                      : `${task.itemsCompleted || 0} of ${task.itemsTotal} sections`}{' '}
-                    · {dueDescription(task.dueDate)}
-                  </span>
-                  <progress className="progress__bar" max="100" value={task.percentComplete || 0}>
-                    {task.percentComplete || 0}%
-                  </progress>
-                </span>
-                <span
-                  className={`badge badge--${task.status === 'OVERDUE' ? 'danger' : 'warning'}`}
-                >
-                  {task.percentComplete === 100 ? 'quiz to take' : `${task.percentComplete || 0}%`}
-                </span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-      <p className="list-footer">
+    <Widget
+      title="Training to complete"
+      subtitle={outstanding ? `${count} outstanding` : null}
+      span={span}
+      loading={!outstanding && !error}
+      loadingLabel="Loading your training…"
+      error={error && `Could not load your training. ${error}`}
+      footer={(
         <Link to="/training" className="btn btn--ghost btn--sm">
           View all training
         </Link>
-      </p>
-    </section>
+      )}
+    >
+      {count === 0 ? (
+        <EmptyState
+          title="No training outstanding"
+          body="Modules assigned to you appear here. You complete one by working through it and passing the quiz."
+        />
+      ) : (
+        <ul className="task-list">
+          {outstanding.map((module) => {
+            const task = module.task || {};
+
+            return (
+              <li key={module.id}>
+                <Link
+                  className={`task-row${task.status === 'OVERDUE' ? ' task-row--overdue' : ''}`}
+                  to={`/training/modules/${module.id}`}
+                >
+                  <span className="task-row__main">
+                    <span className="task-row__title">{module.title}</span>
+                    <span className="task-row__meta">
+                      {task.percentComplete === 100
+                        ? 'Content finished — the quiz is unlocked'
+                        : `${task.itemsCompleted || 0} of ${task.itemsTotal} sections`}{' '}
+                      · {dueDescription(task.dueDate)}
+                    </span>
+                    <progress className="progress__bar" max="100" value={task.percentComplete || 0}>
+                      {task.percentComplete || 0}%
+                    </progress>
+                  </span>
+                  <span
+                    className={`badge badge--${task.status === 'OVERDUE' ? 'danger' : 'warning'}`}
+                  >
+                    {task.status === 'OVERDUE'
+                      ? 'Overdue'
+                      : task.percentComplete === 100
+                        ? 'Quiz to take'
+                        : `${task.percentComplete || 0}%`}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Widget>
   );
 };
 

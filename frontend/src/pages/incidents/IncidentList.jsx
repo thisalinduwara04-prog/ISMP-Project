@@ -102,13 +102,23 @@ const IncidentList = () => {
 
   return (
     <div className="page">
-      <header className="page__header">
-        <h1>{isTriager ? 'Incident queue' : 'My reports'}</h1>
-        <p>
-          {isTriager
-            ? 'Every incident reported across the business, most urgent first.'
-            : 'Incidents you have reported, and what has happened to them since.'}
-        </p>
+      {/* The way in to reporting (M5). It lives here, at the top of the list
+          of reports, rather than on My tasks - the same place an employee
+          comes to follow up on what they have already reported. */}
+      <header className="page__header section-heading">
+        <div>
+          <h1>{isTriager ? 'Incident queue' : 'My reports'}</h1>
+          <p>
+            {isTriager
+              ? 'Every incident reported across the business, most urgent first.'
+              : 'Incidents you have reported, and what has happened to them since.'}
+          </p>
+        </div>
+        {can(CAPABILITIES.INCIDENT_SUBMIT) && (
+          <Link to="/incidents/new" className="btn btn--primary">
+            Report an incident
+          </Link>
+        )}
       </header>
 
       {/* UC-24: a standing red banner while anything serious is still open.
@@ -159,12 +169,7 @@ const IncidentList = () => {
           body={
             isTriager
               ? 'No incidents match this view. Clear the filters to see everything that has been reported.'
-              : 'If you see something that looks wrong — an odd email, a missing device, a screen left signed in — report it here.'
-          }
-          action={
-            <Link to="/incidents/new" className="btn btn--primary">
-              Report an incident
-            </Link>
+              : 'If you see something that looks wrong — an odd email, a missing device, a screen left signed in — use Report an incident above.'
           }
         />
       )}

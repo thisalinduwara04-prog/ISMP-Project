@@ -1,129 +1,42 @@
 /* ---------------------------------------------------------------------------
-   Application shell: header bar, main region and page containers.
+   Page containers.
+
+   The shell itself - sidebar, header, widget grid - lives in shell.css. What is
+   left here is the measure each kind of page is read at, and the sign-in screen.
+
+   The top bar and horizontal nav that employees and managers used before every
+   role moved to the shell are gone; nothing rendered them once AppShell
+   replaced Layout.
    --------------------------------------------------------------------------- */
 
-.app {
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
-}
-
-/* --- Top bar ------------------------------------------------------------ */
-
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-  padding: 0.75rem 1rem;
-  background: var(--surface);
-  border-bottom: 1px solid var(--line);
-}
-
-.topbar__brand {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  color: inherit;
-  text-decoration: none;
-}
-
-.topbar__mark {
-  display: grid;
-  place-items: center;
+/* The company logo, in the sidebar and on the sign-in card.
+   The artwork is square with a white background of its own, so it sits on a
+   white tile rather than on the canvas - on the tinted canvas its own white
+   corners would otherwise read as a pale box around it. `contain` keeps it
+   undistorted whatever the source file's exact proportions are. */
+.brand-logo {
   width: 36px;
   height: 36px;
+  flex: 0 0 auto;
+  padding: 2px;
   border-radius: var(--radius-sm);
-  background: var(--brand);
-  color: #fff;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  background: #fff;
+  object-fit: contain;
+  box-shadow: var(--shadow);
 }
 
-.topbar__brand strong {
+/* Larger and centred above the title on the sign-in and change-password cards,
+   where it is the first thing on screen and has room to be recognised. */
+.brand-logo--auth {
   display: block;
-  font-size: 0.9375rem;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 1rem;
+  padding: 4px;
+  border-radius: var(--radius);
 }
 
-.topbar__brand small {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--ink-soft);
-}
-
-.topbar__user {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.topbar__identity {
-  margin-right: 0.25rem;
-  text-align: right;
-}
-
-.topbar__identity strong {
-  display: block;
-  font-size: 0.875rem;
-}
-
-.topbar__identity small {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--ink-soft);
-}
-
-/* Below 480px the name is dropped rather than wrapped - the sign-out control
-   matters more than the identity on a phone (NFR-USE-02). */
-@media (max-width: 479px) {
-  .topbar__identity {
-    display: none;
-  }
-}
-
-/* --- Main navigation ---------------------------------------------------- */
-
-.nav {
-  display: flex;
-  gap: 0.25rem;
-  padding: 0 1rem;
-  background: var(--surface);
-  border-bottom: 1px solid var(--line);
-  /* Scrolls rather than wraps: on a phone a second row of nav would push the
-     page content below the fold. */
-  overflow-x: auto;
-}
-
-.nav__link {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--touch-target);
-  padding: 0 0.75rem;
-  border-bottom: 2px solid transparent;
-  color: var(--ink-soft);
-  font-size: 0.875rem;
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.nav__link:hover {
-  color: var(--ink);
-}
-
-.nav__link--active {
-  border-bottom-color: var(--brand);
-  color: var(--brand);
-}
-
-/* --- Main region -------------------------------------------------------- */
-
-.main {
-  flex: 1;
-  padding: 1.25rem 1rem 3rem;
-}
+/* --- Page containers ---------------------------------------------------- */
 
 .page {
   display: grid;
@@ -151,30 +64,29 @@
   margin-bottom: 0.5rem;
 }
 
+.page__header h1 {
+  font-size: 1.5rem;
+}
+
 .page__header p {
   margin: 0;
   color: var(--ink-soft);
-}
-
-/* --- Auth screens ------------------------------------------------------- */
-
-.auth-screen {
-  display: grid;
-  place-items: center;
-  min-height: 100%;
-  padding: 2rem 1rem;
-}
-
-/* --- Tile grid ---------------------------------------------------------- */
-
-.tiles {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
 }
 
 /* Forms and long-form editing read better at a narrower measure than the
    dashboards the default page width is sized for. */
 .page--narrow {
   max-width: 46rem;
+}
+
+/* --- Auth screens ------------------------------------------------------- */
+/* Outside the shell - there is no navigation to offer until someone has signed
+   in - but on the same canvas wash, so signing in and landing on a dashboard
+   look like the same product. */
+
+.auth-screen {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: 2rem 1rem;
 }
