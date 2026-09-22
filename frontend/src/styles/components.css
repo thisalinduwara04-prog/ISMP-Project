@@ -675,6 +675,13 @@
 
 .check-dropdown { position: relative; }
 
+/* Frosted cards create stacking contexts. Raise the filter card while a menu
+   is open so later dashboard widgets cannot cover its checkbox options. */
+.filters:has(.check-dropdown[open]) {
+  position: relative;
+  z-index: 21;
+}
+
 .check-dropdown__summary {
   display: flex;
   justify-content: space-between;
