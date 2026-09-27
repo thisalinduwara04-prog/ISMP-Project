@@ -90,3 +90,105 @@
   min-height: 100%;
   padding: 2rem 1rem;
 }
+
+
+/* The sign-in screen: a white column on the left holding the logo and the
+   form, and the company photograph filling the rest on the right. */
+.auth-photo {
+  display: grid;
+  grid-template-columns: minmax(0, 520px) minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--surface);
+}
+
+.auth-side {
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem clamp(1.5rem, 4vw, 3rem);
+}
+
+/* Anchored right so the products stay in frame when the column is narrow.
+   The white gradient on top fades the photograph's left edge into the panel
+   beside it, so there is no seam between the two. */
+.auth-photo__media {
+  background:
+    linear-gradient(to right, var(--surface) 0%, rgba(255, 255, 255, 0) 30%),
+    url('../assets/background.png') right center / cover no-repeat;
+}
+
+/* On a phone the photograph would squeeze the form, so it is dropped. */
+@media (max-width: 768px) {
+  .auth-photo {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-photo__media {
+    display: none;
+  }
+}
+
+.auth-panel__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.auth-panel__brand .brand-logo {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+
+/* Centred vertically in the height left under the logo. */
+.auth-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 380px;
+  margin: auto;
+  padding: 2rem 0;
+}
+
+.auth-panel__body .auth-card__title,
+.auth-panel__body .auth-card__subtitle {
+  text-align: center;
+}
+
+.auth-panel__body .auth-card__title {
+  font-size: 1.75rem;
+}
+
+/* Pill-shaped controls, as in the rest of the sign-in panel. */
+.auth-panel__body .field__input,
+.auth-panel__body .btn {
+  border-radius: var(--pill);
+}
+
+/* Tinted at rest so the field stands out on the white panel; solid white once
+   the pointer or focus is on it. */
+.auth-panel__body .field__input {
+  padding-inline: 1rem;
+  background: var(--canvas);
+  transition: background-color 120ms ease;
+}
+
+.auth-panel__body .field__input:hover,
+.auth-panel__body .field__input:focus {
+  background: var(--surface);
+}
+
+.auth-panel__body .btn {
+  margin-top: 0.5rem;
+}
+
+.auth-panel__footnote {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+  text-align: center;
+}

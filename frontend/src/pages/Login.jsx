@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import Alert from '../components/Alert';
+import Button from '../components/Button';
+import Field from '../components/Field';
 import { useAuth } from '../auth/AuthContext';
 import { homePathFor } from '../constants';
 import logo from '../assets/savikro.png';
@@ -43,65 +45,73 @@ const Login = () => {
   };
 
   return (
-    <div className="auth-screen">
-      <form className="card auth-card" onSubmit={handleSubmit} noValidate>
-        {/* alt names the company, because on this screen nothing else does. */}
-        <img src={logo} alt="Savikro" className="brand-logo brand-logo--auth" />
-        <h1 className="auth-card__title">Sign in</h1>
-        <p className="auth-card__subtitle">Use the employee ID issued by your administrator.</p>
+    <div className="auth-photo">
+      <div className="auth-side">
+        <div className="auth-panel__brand">
+          <img src={logo} alt="" className="brand-logo" />
+          <span>Savikro</span>
+        </div>
 
-        {idleSignOut && !error && (
-          <Alert tone="info" title="Signed out">
-            You were signed out after 30 minutes of inactivity.
-          </Alert>
-        )}
+        <form className="auth-panel" onSubmit={handleSubmit} noValidate>
+          <div className="auth-panel__body">
+            <h1 className="auth-card__title">Sign in</h1>
+            <p className="auth-card__subtitle">Use the employee ID issued by your administrator.</p>
 
-        {error && (
-          <Alert
-            tone={error.code === 'ACCOUNT_LOCKED' ? 'warning' : 'error'}
-            title={error.code === 'ACCOUNT_LOCKED' ? 'Account locked' : 'Could not sign in'}
-          >
-            {error.message}
-          </Alert>
-        )}
+            {idleSignOut && !error && (
+              <Alert tone="info" title="Signed out">
+                You were signed out after 30 minutes of inactivity.
+              </Alert>
+            )}
 
-        <label className="field" htmlFor="employeeId">
-          <span className="field__label">Employee ID</span>
-          <input
-            id="employeeId"
-            name="employeeId"
-            className="field__input"
-            value={employeeId}
-            onChange={(e) => setEmployeeId(e.target.value)}
-            autoComplete="username"
-            autoCapitalize="characters"
-            placeholder="SVK-020"
-            required
-          />
-        </label>
+            {error && (
+              <Alert
+                tone={error.code === 'ACCOUNT_LOCKED' ? 'warning' : 'error'}
+                title={error.code === 'ACCOUNT_LOCKED' ? 'Account locked' : 'Could not sign in'}
+              >
+                {error.message}
+              </Alert>
+            )}
 
-        <label className="field" htmlFor="password">
-          <span className="field__label">Password</span>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            className="field__input"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-            required
-          />
-        </label>
+            <Field label="Employee ID" htmlFor="employeeId">
+              <input
+                id="employeeId"
+                name="employeeId"
+                className="field__input"
+                value={employeeId}
+                onChange={(e) => setEmployeeId(e.target.value)}
+                autoComplete="username"
+                autoCapitalize="characters"
+                placeholder="SVK-020"
+                required
+              />
+            </Field>
 
-        <button type="submit" className="btn btn--primary btn--block" disabled={submitting}>
-          {submitting ? 'Signing in…' : 'Sign in'}
-        </button>
+            <Field label="Password" htmlFor="password">
+              <input
+                id="password"
+                name="password"
+                type="password"
+                className="field__input"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+              />
+            </Field>
 
-        <p className="auth-card__footnote">
-          Forgotten your password? Contact your administrator for a reset.
-        </p>
-      </form>
+            <Button type="submit" block busy={submitting} busyLabel="Signing in…">
+              Sign in
+            </Button>
+          </div>
+
+          <p className="auth-panel__footnote">
+            Forgotten your password? Contact your administrator for a reset.
+          </p>
+        </form>
+      </div>
+
+      {/* Decorative: painted in CSS so it can fade into the white panel. */}
+      <div className="auth-photo__media" aria-hidden="true" />
     </div>
   );
 };
