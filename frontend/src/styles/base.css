@@ -17,17 +17,16 @@
   --ink-soft: #55606f;
 
   /* Surfaces.
-     --canvas is the flat fallback colour; --canvas-wash paints it with three
-     faint colour pools so the page reads as a tinted surface rather than flat
-     grey. The alphas are held low deliberately: text sits directly on this, and
-     where all three pools overlap the blend is #d0dce6, against which
-     --ink-soft measures 4.58:1 - just clearing AA. Raising any alpha pushes
-     that under 4.5:1 and breaks NFR-USE-03. */
-  --canvas: #efefed;
+     --canvas is a warm cream, picking up the yellows of the sign-in
+     photograph; --canvas-wash adds three soft yellow pools so the page reads
+     as a tinted surface rather than flat. Yellow stays light however the pools
+     overlap - the deepest blend is around #f6e3a0, against which --ink-soft
+     still measures about 5.3:1, clearing AA (NFR-USE-03). */
+  --canvas: #f8f4e6;
   --canvas-wash:
-    radial-gradient(1100px 620px at 12% 105%, rgba(125, 200, 190, 0.15), transparent 62%),
-    radial-gradient(900px 540px at 55% 115%, rgba(130, 170, 230, 0.13), transparent 62%),
-    radial-gradient(760px 520px at 96% 92%, rgba(190, 170, 230, 0.10), transparent 62%);
+    radial-gradient(1100px 620px at 12% 105%, rgba(250, 214, 80, 0.22), transparent 62%),
+    radial-gradient(900px 540px at 55% 115%, rgba(253, 228, 130, 0.30), transparent 62%),
+    radial-gradient(760px 520px at 96% 92%, rgba(245, 200, 60, 0.16), transparent 62%);
   --surface: #ffffff;
   --line: #e3e5e8;
 
