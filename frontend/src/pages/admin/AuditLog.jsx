@@ -297,35 +297,53 @@ const AuditLog = () => {
                         <tr key={`${entry.id}-detail`} className="audit-detail">
                           <td colSpan={5}>
                             <dl className="detail-list">
-                              <dt>Action</dt>
-                              <dd>
-                                <code>{entry.action}</code>
-                              </dd>
+                              {/* Every pair sits in its own div, the fixed fields as
+                                  well as the metadata below. The list is a
+                                  reflowing multi-column grid: a bare dt and dd
+                                  are two separate cells, and they drift apart as
+                                  soon as the columns do not divide evenly. */}
+                              <div className="audit-detail__meta">
+                                <dt>Action</dt>
+                                <dd>
+                                  <code>{entry.action}</code>
+                                </dd>
+                              </div>
 
-                              <dt>Target</dt>
-                              <dd>
-                                {entry.entityType ? (
-                                  <>
-                                    {humanise(entry.entityType)}
-                                    {entry.entityId && (
-                                      <small className="table__sub">
-                                        <code>{entry.entityId}</code>
-                                      </small>
-                                    )}
-                                  </>
-                                ) : (
-                                  '—'
-                                )}
-                              </dd>
+                              <div className="audit-detail__meta">
+                                <dt>Target</dt>
+                                <dd>
+                                  {entry.entityType ? (
+                                    <>
+                                      {humanise(entry.entityType)}
+                                      {entry.entityId && (
+                                        <small className="table__sub">
+                                          <code>{entry.entityId}</code>
+                                        </small>
+                                      )}
+                                    </>
+                                  ) : (
+                                    '—'
+                                  )}
+                                </dd>
+                              </div>
 
-                              <dt>IP address</dt>
-                              <dd>{entry.ipAddress || '—'}</dd>
+                              <div className="audit-detail__meta">
+                                <dt>IP address</dt>
+                                <dd>{entry.ipAddress || '—'}</dd>
+                              </div>
 
-                              <dt>Request</dt>
-                              <dd>{entry.requestId ? <code>{entry.requestId}</code> : '—'}</dd>
+                              <div className="audit-detail__meta">
+                                <dt>Request</dt>
+                                <dd>{entry.requestId ? <code>{entry.requestId}</code> : '—'}</dd>
+                              </div>
 
-                              <dt>Device</dt>
-                              <dd className="audit-detail__agent">{entry.userAgent || '—'}</dd>
+                              {/* A full row: a browser identifier is far longer
+                                  than one column, and would otherwise run into
+                                  its neighbours. */}
+                              <div className="audit-detail__meta audit-detail__meta--wide">
+                                <dt>Device</dt>
+                                <dd className="audit-detail__agent">{entry.userAgent || '—'}</dd>
+                              </div>
 
                               {Object.entries(entry.metadata).map(([key, value]) => (
                                 <div key={key} className="audit-detail__meta">

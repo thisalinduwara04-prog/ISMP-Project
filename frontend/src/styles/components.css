@@ -2074,6 +2074,11 @@
   min-width: 0;
 }
 
+/* Spans every column - for values too long to share a row. */
+.audit-detail__meta--wide {
+  grid-column: 1 / -1;
+}
+
 .audit-detail code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.8125rem;
