@@ -146,3 +146,28 @@ export const STATUSES_REQUIRING_NOTE = ['RESOLVED', 'CLOSED'];
 // Matches the server's allow-list in backend/src/utils/fileType.js.
 export const ATTACHMENT_ACCEPT = '.png,.jpg,.jpeg,.pdf,.eml,.txt';
 export const ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024;
+
+// --- Assignments (M4) --------------------------------------------------------
+//
+// Mirrors backend/src/constants/assignments.js. Display labels and tones only.
+
+export const ASSIGNMENT_ITEM_TYPE_LABELS = {
+  POLICY: 'Policy',
+  TRAINING: 'Training',
+};
+
+// OVERDUE is set by the nightly sweep, not computed on read, so an item can be
+// past its due date and still say PENDING until the sweep has run.
+export const ASSIGNMENT_STATUS_LABELS = {
+  PENDING: 'Not started',
+  IN_PROGRESS: 'In progress',
+  OVERDUE: 'Overdue',
+  COMPLETED: 'Completed',
+};
+
+export const ASSIGNMENT_STATUS_TONE = {
+  PENDING: 'neutral',
+  IN_PROGRESS: 'info',
+  OVERDUE: 'danger',
+  COMPLETED: 'ok',
+};

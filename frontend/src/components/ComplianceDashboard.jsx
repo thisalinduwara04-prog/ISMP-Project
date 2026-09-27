@@ -2,12 +2,19 @@ import { useCallback, useEffect, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 import Alert from './Alert';
+import Badge from './Badge';
 import EmptyState from './EmptyState';
+import Modal from './Modal';
 import Spinner from './Spinner';
 import ComplianceSummary from './ComplianceSummary';
 import Widget from './Widget';
 import { useToast } from './ToastProvider';
-import { DEPARTMENT_LABELS } from '../constants';
+import {
+  ASSIGNMENT_ITEM_TYPE_LABELS,
+  ASSIGNMENT_STATUS_LABELS,
+  ASSIGNMENT_STATUS_TONE,
+  DEPARTMENT_LABELS,
+} from '../constants';
 import { exportCompliance, getDashboard, getOutstanding, sendReminder } from '../api/compliance';
 import { stepUp } from '../api/auth';
 
@@ -68,11 +75,85 @@ const CheckboxDropdown = ({ label, selected, options, allLabel, onToggle }) => (
   </div>
 );
 
+// --- One person's open items, for the outstanding-staff panel ---------------
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const startOfDay = (value) => {
+  const day = new Date(value);
+  day.setHours(0, 0, 0, 0);
+  return day;
+};
+
+// Relative wording only - "overdue" is never said here. Whether an item is
+// overdue is its status, set by the nightly sweep, and the panel groups by that
+// status so it always agrees with the Overdue column. An item past its date that
+// the sweep has not reached yet still reads honestly: "due 26 Sep · 1 day ago".
+const whenDue = (dueDate) => {
+  const days = Math.round((startOfDay(dueDate) - startOfDay(new Date())) / DAY_MS);
+  const date = new Date(dueDate).toLocaleDateString();
+  if (days === 0) return `due today (${date})`;
+  if (days < 0) return `due ${date} · ${-days} day${days === -1 ? '' : 's'} ago`;
+  return `due ${date} · in ${days} day${days === 1 ? '' : 's'}`;
+};
+
+const DueList = ({ items }) => (
+  <ul className="due-list">
+    {items.map((item) => (
+      <li key={item.id} className="due-list__item">
+        <div className="due-list__what">
+          <strong>{item.itemTitle}</strong>
+          <small>{ASSIGNMENT_ITEM_TYPE_LABELS[item.itemType] || item.itemType}</small>
+        </div>
+        <div className="due-list__when">
+          <Badge tone={ASSIGNMENT_STATUS_TONE[item.status] || 'neutral'}>
+            {ASSIGNMENT_STATUS_LABELS[item.status] || item.status}
+          </Badge>
+          <small>{whenDue(item.dueDate)}</small>
+        </div>
+      </li>
+    ))}
+  </ul>
+);
+
+// Split by status, oldest due first within each. "Outstanding" in the table
+// counts every open item, overdue ones included, so the second group is named
+// for what it actually holds - open but not overdue - and the two groups add up
+// to the row's Outstanding figure.
+const OutstandingDetail = ({ row }) => {
+  const byDue = [...(row.assignments || [])].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+  const overdue = byDue.filter((item) => item.status === 'OVERDUE');
+  const open = byDue.filter((item) => item.status !== 'OVERDUE');
+
+  return (
+    <>
+      <p className="due-summary">
+        {row.outstandingCount} outstanding item{row.outstandingCount === 1 ? '' : 's'}
+        {overdue.length > 0 ? `, ${overdue.length} of them overdue` : ', none overdue'}.
+      </p>
+
+      <section className="due-section">
+        <h3 className="due-section__title">Overdue ({overdue.length})</h3>
+        {overdue.length ? <DueList items={overdue} /> : <p className="muted">Nothing overdue.</p>}
+      </section>
+
+      <section className="due-section">
+        <h3 className="due-section__title">Outstanding, not yet overdue ({open.length})</h3>
+        {open.length ? <DueList items={open} /> : <p className="muted">Nothing else outstanding.</p>}
+      </section>
+    </>
+  );
+};
+
 const ComplianceDashboard = ({ fixedDepartment = null, allowOrganisation = false }) => {
   const [filters, setFilters] = useState(() => emptyFilters(fixedDepartment || ''));
   const [appliedFilters, setAppliedFilters] = useState(() => emptyFilters(fixedDepartment || ''));
   const [dashboard, setDashboard] = useState(null);
   const [outstanding, setOutstanding] = useState(null);
+  // The row whose items are open in the panel. Kept after closing so the
+  // contents do not blank out while the panel animates away.
+  const [detailRow, setDetailRow] = useState(null);
+  const [detailOpen, setDetailOpen] = useState(false);
   const { notify } = useToast();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(true);
@@ -281,17 +362,58 @@ const ComplianceDashboard = ({ fixedDepartment = null, allowOrganisation = false
             <table className="data-table">
               <thead><tr><th>Employee</th><th>Department</th><th>Outstanding</th><th>Overdue</th><th>Oldest due</th><th><span className="sr-only">Actions</span></th></tr></thead>
               <tbody>{outstanding.items.map((row) => (
-                <tr key={row._id}>
-                  <td><strong>{row.user.fullName}</strong><small>{row.user.employeeId}</small></td>
+                <tr
+                  key={row._id}
+                  className="table__row--clickable"
+                  onClick={() => { setDetailRow(row); setDetailOpen(true); }}
+                >
+                  {/* The name is the keyboard way in; the row click is a mouse
+                      shortcut on top of it. */}
+                  <td>
+                    <button
+                      type="button"
+                      className="link-quiet"
+                      onClick={(event) => { event.stopPropagation(); setDetailRow(row); setDetailOpen(true); }}
+                    >
+                      {row.user.fullName}
+                    </button>
+                    <small>{row.user.employeeId}</small>
+                  </td>
                   <td>{DEPARTMENT_LABELS[row.department] || row.department}</td><td>{row.outstandingCount}</td><td>{row.overdueCount}</td>
                   <td>{new Date(row.oldestDueDate).toLocaleDateString()}</td>
-                  <td><button className="btn btn--ghost btn--sm" type="button" disabled={!!action} onClick={() => remind(row)}>{action === `remind-${row._id}` ? 'Sending…' : 'Remind'}</button></td>
+                  <td onClick={(event) => event.stopPropagation()}><button className="btn btn--ghost btn--sm" type="button" disabled={!!action} onClick={() => remind(row)}>{action === `remind-${row._id}` ? 'Sending…' : 'Remind'}</button></td>
                 </tr>
               ))}</tbody>
             </table>
           </div>
         )}
       </Widget>
+
+      <Modal
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        title={detailRow?.user.fullName}
+        subtitle={detailRow
+          ? `${detailRow.user.employeeId} · ${DEPARTMENT_LABELS[detailRow.department] || detailRow.department}`
+          : undefined}
+        footer={detailRow && (
+          <>
+            <button type="button" className="btn btn--ghost" onClick={() => setDetailOpen(false)}>
+              Close
+            </button>
+            <button
+              type="button"
+              className="btn btn--primary"
+              disabled={!!action}
+              onClick={() => remind(detailRow)}
+            >
+              {action === `remind-${detailRow._id}` ? 'Sending…' : 'Send reminder'}
+            </button>
+          </>
+        )}
+      >
+        {detailRow && <OutstandingDetail row={detailRow} />}
+      </Modal>
     </div>
   );
 };

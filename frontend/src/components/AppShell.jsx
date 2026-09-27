@@ -4,8 +4,9 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useIdleTimer } from '../auth/useIdleTimer';
 import { getNotifications } from '../api/notifications';
-import { ROLE_LABELS, DEPARTMENT_LABELS, homePathFor } from '../constants';
+import { CAPABILITIES, DEPARTMENT_LABELS, ROLE_LABELS, homePathFor } from '../constants';
 import Icon from './Icon';
+import ProfileMenu from './ProfileMenu';
 import ShellSidebar from './ShellSidebar';
 
 // The shell every signed-in screen renders inside.
@@ -21,17 +22,8 @@ import ShellSidebar from './ShellSidebar';
 // to the whole string when there is no space in it.
 const firstNameOf = (fullName = '') => fullName.trim().split(/\s+/)[0] || fullName;
 
-// Up to two letters, from the first and last word of the name.
-const initialsOf = (fullName = '') => {
-  const words = fullName.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return '?';
-  const first = words[0][0];
-  const last = words.length > 1 ? words[words.length - 1][0] : '';
-  return (first + last).toUpperCase();
-};
-
 const AppShell = () => {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, can } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -96,11 +88,22 @@ const AppShell = () => {
             )}
           </div>
 
-          {/* Icon-only, so each control carries its name in aria-label and
-              title rather than on screen. Only controls that actually do
-              something are here - no search box or theme switch, because
-              neither exists behind them. */}
-          <div className="app-shell__controls">
+          <div className="app-shell__actions">
+            {/* Reporting is the one thing on any screen that may be urgent, so
+                it is reachable from every screen rather than only from the
+                incidents page. Capability-filtered like everything else here -
+                an affordance, never the control (NFR-SEC-03). */}
+            {can(CAPABILITIES.INCIDENT_SUBMIT) && (
+              <Link to="/incidents/new" className="btn btn--primary">
+                Report an incident
+              </Link>
+            )}
+
+            {/* Icon-only, so each control carries its name in aria-label and
+                title rather than on screen. Only controls that actually do
+                something are here - no search box or theme switch, because
+                neither exists behind them. */}
+            <div className="app-shell__controls">
             <Link
               to="/notifications"
               className="shell-icon-btn"
@@ -137,10 +140,8 @@ const AppShell = () => {
               <Icon name="exit" className="shell-icon-btn__glyph" />
             </button>
 
-            {/* Decorative: the name it abbreviates is already beside it. */}
-            <span className="shell-avatar" aria-hidden="true">
-              {initialsOf(user?.fullName)}
-            </span>
+              <ProfileMenu />
+            </div>
           </div>
         </header>
 

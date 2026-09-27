@@ -135,7 +135,7 @@ const RichTextArea = ({
 
   return (
     <div className="editor">
-      <div className="toolbar" role="toolbar" aria-label="Text formatting">
+      <div className="rte-toolbar" role="toolbar" aria-label="Text formatting">
         {button('B', 'Bold', () => wrap('bold'), { className: 'toolbar__btn--bold' })}
         {button('I', 'Italic', () => wrap('italic'), { className: 'toolbar__btn--italic' })}
         {button('U', 'Underline', () => wrap('underline'), { className: 'toolbar__btn--underline' })}

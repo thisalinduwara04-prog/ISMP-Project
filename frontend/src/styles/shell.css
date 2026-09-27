@@ -122,6 +122,11 @@
 }
 
 .app-shell__header {
+  /* Its own stacking layer, above main. The cards below rise on hover with a
+     transform, and each transform starts a new stacking context - without this,
+     the profile dropdown opens underneath the first card it overlaps. */
+  position: relative;
+  z-index: 20;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -140,6 +145,27 @@
   margin: 0;
   color: var(--ink-soft);
   font-size: 0.875rem;
+}
+
+/* The report button and the icon pill, side by side on the right. Centred on
+   each other so the 44px button and the 50px pill share a midline rather than
+   a top edge. */
+.app-shell__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Same height as the pill beside it, and pill-shaped like the rest of the
+   header, so the two read as one group rather than a button parked next to a
+   toolbar. */
+.app-shell__actions > .btn--primary {
+  min-height: 50px;
+  padding-inline: 1.25rem;
+  border-radius: var(--pill);
+  box-shadow: var(--shadow);
+  font-weight: 600;
 }
 
 .app-shell__controls {
@@ -214,11 +240,22 @@
   height: 40px;
   margin-left: 0.125rem;
   border-radius: 50%;
+  padding: 0;
+  border: 0;
   background: var(--accent);
   color: var(--accent-ink);
+  font: inherit;
   font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: box-shadow 140ms ease;
+}
+
+/* A ring rather than a colour change: the lime is the accent everywhere else,
+   and darkening it here would make the avatar look like a different control. */
+.shell-avatar:hover {
+  box-shadow: 0 0 0 3px rgba(223, 242, 100, 0.45);
 }
 
 .app-shell__main {
@@ -857,4 +894,102 @@ a.widget:hover {
     bottom: 0.5rem;
     width: auto;
   }
+}
+
+/* --- Profile dropdown (ProfileMenu.jsx) -----------------------------------
+   Opens downward from the avatar, its right edge in line with the right edge of
+   the icon pill (the pill's 0.3125rem padding is what the negative offset
+   takes back). Grows from its top-right corner, where the avatar is.
+
+   Opaque white rather than frosted: it sits over busy cards, and a blur nested
+   inside the frosted pill renders unreliably across browsers.
+   --------------------------------------------------------------------------- */
+
+.profile-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.profile-menu__panel {
+  position: absolute;
+  top: calc(100% + 0.9rem);
+  right: -0.3125rem;
+  width: min(20rem, calc(100vw - 2rem));
+  padding: 1rem;
+  background: #ffffff;
+  border-radius: var(--radius-lg, 20px);
+  box-shadow: 0 2px 6px rgba(20, 22, 26, 0.06), 0 20px 48px rgba(20, 22, 26, 0.16);
+  transform-origin: top right;
+  opacity: 0;
+  transform: translateY(-6px) scale(0.97);
+  transition: opacity 160ms ease, transform 160ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.profile-menu__panel--shown {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* Takes focus on open so the keyboard starts inside, but it is a container,
+   not a control - no ring on the panel itself. */
+.profile-menu__panel:focus { outline: none; }
+
+.profile-menu__head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 0.875rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.profile-menu__avatar {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.profile-menu__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+.profile-menu__who strong {
+  font-size: 0.9375rem;
+  color: var(--ink);
+}
+
+/* Emails are long and unbreakable; truncate rather than widen the panel. */
+.profile-menu__email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-menu__details {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  gap: 0.4rem 0.75rem;
+  margin: 0.875rem 0;
+  font-size: 0.8125rem;
+}
+
+.profile-menu__details dt { color: var(--ink-soft); }
+.profile-menu__details dd { margin: 0; }
+
+.profile-menu__foot {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
 }

@@ -53,22 +53,45 @@
   text-align: center;
 }
 
+/* Heading left, every button right, both on the same line.
+
+   The back button is written BEFORE the <h1> on most of these screens, which is
+   why the children carry `order` rather than the markup being rearranged: ten
+   pages share this pattern and none of them need editing to get the new
+   arrangement. */
 .page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
   margin-bottom: 0.25rem;
 }
 
-/* A back button sitting above the title needs air under it, or the two read as
-   one stacked block. Applies wherever the pattern is used - the module builder,
-   the player, the version editor - so they all look the same. */
-.page__header .btn {
-  margin-bottom: 0.5rem;
+/* Some screens (the notifications feed, the incident queue) wrap their heading
+   and subtitle in a div, handing the row one child where others hand it three.
+   It still has to claim the free space, or the buttons drift left to meet it. */
+.page__header > div {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .page__header h1 {
+  order: 1;
+  flex: 1 1 auto;
+  /* The default h1 bottom margin would break the shared baseline. */
+  margin: 0;
   font-size: 1.5rem;
 }
 
+.page__header .btn {
+  order: 2;
+  margin-bottom: 0;
+}
+
+/* The subtitle takes a full row of its own, under both. */
 .page__header p {
+  order: 3;
+  flex: 1 0 100%;
   margin: 0;
   color: var(--ink-soft);
 }

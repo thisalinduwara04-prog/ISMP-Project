@@ -420,7 +420,7 @@ const UserList = () => {
         }
       >
         {summaryUser && (
-          <dl className="detail-list">
+          <dl className="summary-list">
             <dt>Department</dt>
             <dd>{DEPARTMENT_LABELS[summaryUser.department] || summaryUser.department}</dd>
 

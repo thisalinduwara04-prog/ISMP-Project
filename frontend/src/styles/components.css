@@ -1334,7 +1334,10 @@
   overflow: hidden;
 }
 
-.toolbar {
+/* The editor's formatting bar. Named rte-toolbar rather than toolbar: the
+   filter bars above lists are .toolbar too, and while both shared the name,
+   this rule - later in the file - silently overwrote their padding and gap. */
+.rte-toolbar {
   display: flex;
   flex-wrap: wrap;
   gap: 0.125rem;
@@ -2193,9 +2196,12 @@
   border-top: 1px solid var(--line);
 }
 
-/* --- Detail list, used for the modal's field/value pairs --------------------- */
+/* --- Summary list: the side-by-side label/value grid in the roster modal ---
+   Its own name, not .summary-list: that one is the stacked label-over-value list
+   on the audit log, account and policy screens, and redefining it here as a
+   two-column grid silently re-laid out all three. --------------------------- */
 
-.detail-list {
+.summary-list {
   display: grid;
   grid-template-columns: 10rem 1fr;
   gap: 0.5rem 1rem;
@@ -2203,21 +2209,21 @@
   font-size: 0.875rem;
 }
 
-.detail-list dt {
+.summary-list dt {
   color: var(--ink-soft);
 }
 
-.detail-list dd {
+.summary-list dd {
   margin: 0;
 }
 
 @media (max-width: 30rem) {
-  .detail-list {
+  .summary-list {
     grid-template-columns: 1fr;
     gap: 0.125rem;
   }
 
-  .detail-list dd { margin-bottom: 0.5rem; }
+  .summary-list dd { margin-bottom: 0.5rem; }
 }
 
 /* --- A name that opens something, without looking like a navigation link -----
@@ -2239,4 +2245,139 @@
 
 .link-quiet:hover {
   text-decoration: underline;
+}
+
+/* --- Fixed-layout tables (Table fixed) -------------------------------------
+   An auto-layout table is as wide as its content asks, and the wrapper scrolls
+   when that is wider than the page. A fixed-layout table is exactly as wide as
+   its container, and long text wraps inside its column instead - so it cannot
+   scroll sideways once the sized columns fit.
+
+   The scroll wrapper stays in place as the narrow-screen safety net: if the
+   sized columns alone ever exceed the container, it is still the wrapper that
+   scrolls, never the page (NFR-USE-02).
+   --------------------------------------------------------------------------- */
+
+.table--fixed {
+  table-layout: fixed;
+}
+
+/* Titles and descriptions break between words; only a word longer than its
+   whole column is broken inside itself, so nothing spills into the next cell. */
+/* .table sets white-space: nowrap for every table - the roster depends on it to
+   keep each account on one line. A fixed table has to opt back out: with its
+   columns pinned and wrapping forbidden, long text would run straight across
+   the column edge into the next cell. Opted out, the row grows downward
+   instead. Doubled class so it outranks .table wherever the two sit in the
+   file. */
+.table.table--fixed {
+  white-space: normal;
+}
+
+.table--fixed td {
+  overflow-wrap: anywhere;
+}
+
+/* Headers stay on one line; every column is sized to fit its own. */
+.table--fixed th {
+  white-space: nowrap;
+}
+
+/* A link inside a table cell: the body colour and weight of the text around it,
+   underlined on hover. Plain anchors otherwise wear the browser's link blue,
+   which appears nowhere else in the theme. */
+.table__link {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.table__link:hover {
+  text-decoration: underline;
+}
+
+/* Incident list column widths. Each is sized to its widest real value at the
+   table's 0.875rem - a reference like INC-2026-0003, the "In review" badge, a
+   date such as Sep 17, 2026 - plus the cell padding. The title column is left
+   unsized and takes the rest. */
+.incident-col--ref { width: 9.5rem; }
+.incident-col--type { width: 10rem; }
+.incident-col--person { width: 9rem; }
+.incident-col--badge { width: 7.5rem; }
+.incident-col--date { width: 8rem; }
+
+/* --- Outstanding-staff panel (ComplianceDashboard) -------------------------
+   One person's open items in two groups, overdue first. Each item states its
+   status in words as well as in the badge colour, so the grouping reads the
+   same in greyscale (NFR-USE-03).
+   --------------------------------------------------------------------------- */
+
+.due-summary {
+  margin: 0 0 1rem;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+.due-section + .due-section {
+  margin-top: 1.25rem;
+}
+
+.due-section__title {
+  margin: 0 0 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ink-soft);
+}
+
+.due-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.due-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.625rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.due-list__item:last-child {
+  border-bottom: 0;
+}
+
+.due-list__what,
+.due-list__when {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.due-list__what small,
+.due-list__when small {
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+}
+
+.due-list__when {
+  flex: 0 0 auto;
+  align-items: flex-end;
+  text-align: right;
+}
+
+@media (max-width: 30rem) {
+  .due-list__item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .due-list__when {
+    align-items: flex-start;
+    text-align: left;
+  }
 }

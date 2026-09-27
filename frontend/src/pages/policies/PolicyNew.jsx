@@ -84,7 +84,7 @@ const PolicyNew = () => {
         <button type="button" className="btn btn--ghost btn--sm" onClick={() => navigate('/policies')}>
           ← All policies
         </button>
-        <h1><br></br>Add New Policy</h1>
+        <h1>Add New Policy</h1>
         <p>Step 1 of 3 — the record. You will write version 1 next, then publish it.</p>
       </header>
 

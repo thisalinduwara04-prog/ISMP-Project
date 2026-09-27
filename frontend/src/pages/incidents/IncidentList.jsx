@@ -61,13 +61,19 @@ const IncidentList = () => {
     {
       key: 'reference',
       header: 'Reference',
-      render: (row) => <Link to={`/incidents/${row.id}`}>{row.reference}</Link>,
+      className: 'incident-col--ref',
+      render: (row) => (
+        <Link to={`/incidents/${row.id}`} className="table__link">{row.reference}</Link>
+      ),
     },
+    // No width: in a fixed layout the one unsized column takes whatever the
+    // others leave, which is what the longest free text should get.
     { key: 'title', header: 'Title' },
     {
       key: 'type',
       header: 'Type',
       hideOnMobile: true,
+      className: 'incident-col--type',
       render: (row) => INCIDENT_TYPE_LABELS[row.type],
     },
     ...(isTriager
@@ -76,11 +82,13 @@ const IncidentList = () => {
             key: 'reportedBy',
             header: 'Reported by',
             hideOnMobile: true,
+            className: 'incident-col--person',
             render: (row) => row.reportedBy?.fullName || '—',
           },
           {
             key: 'severity',
             header: 'Severity',
+            className: 'incident-col--badge',
             render: (row) => (
               <Badge tone={SEVERITY_TONE[row.severity]}>{SEVERITY_LABELS[row.severity]}</Badge>
             ),
@@ -90,21 +98,23 @@ const IncidentList = () => {
     {
       key: 'status',
       header: 'Status',
+      className: 'incident-col--badge',
       render: (row) => <Badge tone={STATUS_TONE[row.status]}>{STATUS_LABELS[row.status]}</Badge>,
     },
     {
       key: 'createdAt',
       header: 'Reported',
       hideOnMobile: true,
+      className: 'incident-col--date',
       render: (row) => formatDate(row.createdAt),
     },
   ];
 
   return (
-    <div className="page">
-      {/* The way in to reporting (M5). It lives here, at the top of the list
-          of reports, rather than on My tasks - the same place an employee
-          comes to follow up on what they have already reported. */}
+    <div className={isTriager ? 'page page--wide' : 'page'}>
+      {/* Reporting itself is the "Report an incident" button in the shell
+          header, which is on every screen - repeating it here would put two
+          identical buttons on this page. */}
       <header className="page__header section-heading">
         <div>
           <h1>{isTriager ? 'Incident queue' : 'My reports'}</h1>
@@ -114,11 +124,6 @@ const IncidentList = () => {
               : 'Incidents you have reported, and what has happened to them since.'}
           </p>
         </div>
-        {can(CAPABILITIES.INCIDENT_SUBMIT) && (
-          <Link to="/incidents/new" className="btn btn--primary">
-            Report an incident
-          </Link>
-        )}
       </header>
 
       {/* UC-24: a standing red banner while anything serious is still open.
@@ -179,6 +184,7 @@ const IncidentList = () => {
           columns={columns}
           rows={data.items}
           onRowClick={(row) => navigate(`/incidents/${row.id}`)}
+          fixed
           caption={`${data.total} incident${data.total === 1 ? '' : 's'}`}
         />
       )}
