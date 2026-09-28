@@ -83,8 +83,9 @@ const AdminConsole = () => {
   return (
     <div className="widget-grid widget-grid--dashboard">
       <StatCard
-        label="Open Incidents"
+        label="Open incidents"
         icon="incidents"
+        accent="red"
         value={incidents.data ? (openCount === 0 ? 'No open incidents' : openCount) : null}
         sub={escalated > 0 ? `${escalated} high or critical need attention` : 'open or in review'}
         to="/incidents"
@@ -96,7 +97,9 @@ const AdminConsole = () => {
       <StatCard
         label="Compliance"
         icon="shield"
+        accent="green"
         value={summary ? `${summary.compliancePercent}%` : null}
+        progress={summary ? summary.compliancePercent : undefined}
         sub="across the organisation"
         to="/compliance"
         loading={!compliance.data && !compliance.error}
@@ -104,14 +107,26 @@ const AdminConsole = () => {
       />
 
       <StatCard
-        label="Overdue Items"
+        label="Overdue items"
         icon="clock"
+        accent="amber"
         value={summary ? summary.overdue : null}
         sub="past their due date"
         to="/compliance"
         tone={summary?.overdue > 0 ? 'alert' : 'default'}
         loading={!compliance.data && !compliance.error}
         error={compliance.error}
+      />
+
+      <StatCard
+        label="Active users"
+        icon="users"
+        accent="blue"
+        value={activeUsers.data ? activeUsers.data.pagination.total : null}
+        sub="accounts in use"
+        to="/admin/users"
+        loading={!activeUsers.data && !activeUsers.error}
+        error={activeUsers.error}
       />
 
       <Widget
@@ -136,20 +151,10 @@ const AdminConsole = () => {
         <DepartmentBars departments={compliance.data?.departments || []} />
       </Widget>
 
-      <StatCard
-        label="Active users"
-        icon="users"
-        value={activeUsers.data ? activeUsers.data.pagination.total : null}
-        sub="accounts in use"
-        to="/admin/users"
-        loading={!activeUsers.data && !activeUsers.error}
-        error={activeUsers.error}
-      />
-
       <Widget
         title="Recent activity"
         subtitle="latest security events"
-        span="three"
+        span="full"
         // A header link rather than `to`: the panel now holds a table, and a
         // whole-panel link around it would swallow every click on the rows.
         action={(

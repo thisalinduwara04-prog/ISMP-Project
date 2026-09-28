@@ -75,7 +75,11 @@ const AppShell = () => {
           <div>
             {onHome ? (
               <>
-                <h1 className="app-shell__title">Welcome, {firstNameOf(user?.fullName)}</h1>
+                <h1 className="app-shell__title">
+                  Welcome, {firstNameOf(user?.fullName)}{' '}
+                  {/* Decorative, so a screen reader hears just the greeting. */}
+                  <span aria-hidden="true">👋</span>
+                </h1>
                 <p className="app-shell__subtitle">
                   {ROLE_LABELS[user?.role]} · {DEPARTMENT_LABELS[user?.department]}
                 </p>

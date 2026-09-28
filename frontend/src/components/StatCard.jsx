@@ -12,6 +12,11 @@ import Icon from './Icon';
 // changes the colour AND adds a tick. Callers always pass a `sub` line saying
 // what the state is in words. The state is never carried by colour alone
 // (NFR-USE-03). `icon` is decorative and sits beside the label.
+//
+// `accent` (red | green | amber | blue) tints the card and its icon so a row of
+// figures can be told apart at a glance. It is decoration, like the icon: the
+// label says what the figure is. `progress` (0-100) draws a thin bar under the
+// value for a figure that is itself a percentage.
 const TONE_GLYPH = { alert: 'alert', ok: 'check' };
 
 const StatCard = ({
@@ -21,6 +26,8 @@ const StatCard = ({
   to,
   icon,
   tone = 'default',
+  accent,
+  progress,
   wide = false,
   loading = false,
   error = '',
@@ -29,6 +36,9 @@ const StatCard = ({
   if (wide) classes.push('stat-card--wide');
   if (tone === 'alert') classes.push('stat-card--alert');
   if (tone === 'ok') classes.push('stat-card--ok');
+  if (accent) classes.push(`stat-card--${accent}`);
+
+  const showProgress = typeof progress === 'number' && !loading && !error;
 
   const shown = value === null || value === undefined ? '—' : value;
 
@@ -53,6 +63,15 @@ const StatCard = ({
           {!loading && error ? <span className="stat-card__sub">{error}</span> : null}
           {!loading && !error ? shown : null}
         </span>
+
+        {showProgress ? (
+          <span className="meter stat-card__meter" aria-hidden="true">
+            <span
+              className="meter__fill"
+              style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
+            />
+          </span>
+        ) : null}
 
         {sub && !error ? (
           <span className="stat-card__sub">

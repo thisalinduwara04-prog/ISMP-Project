@@ -11,11 +11,11 @@ import Widget from '../../components/Widget';
 // policy and M3 training task lists. Reporting an incident (M5) is not here -
 // it is the first control on the Incidents page, beside the reports it adds to.
 //
-// The greeting is the shell's, so there is no page heading here. Rows add up to
-// four columns each (see .widget-grid):
-//   rows 1-2  readiness gauge (2 wide, 2 tall) beside
-//             policies (1) + training (1), then overdue (2) under them
-//   row 3     policies to read (2) + training to complete (2)
+// The greeting is the shell's, so there is no page heading here. Twelve
+// columns (see .widget-grid--dashboard):
+//   row 1  policies to read, training to complete, overdue (4+4+4)
+//   row 2  compliance gauge (4) + training to complete (8)
+//   row 3  policies to read, on a line of its own (full width)
 // Notifications are not repeated here: the bell in the shell header carries
 // the unread count and opens the full feed.
 const MyTasks = () => {
@@ -39,11 +39,47 @@ const MyTasks = () => {
   const overdue = summary?.overdue || 0;
 
   return (
-    <div className="widget-grid">
+    <div className="widget-grid widget-grid--dashboard widget-grid--three-cards">
+      <StatCard
+        label="Policies to read"
+        icon="policies"
+        accent="green"
+        value={policiesLeft}
+        sub={policiesLeft === 0 ? 'All acknowledged' : 'Awaiting your confirmation'}
+        tone={policiesLeft === 0 ? 'ok' : 'default'}
+        to="/policies"
+        loading={loading}
+        error={compliance.error && 'Unavailable'}
+      />
+
+      <StatCard
+        label="Training to complete"
+        icon="clock"
+        accent="amber"
+        value={trainingLeft}
+        sub={trainingLeft === 0 ? 'All passed' : 'Modules still open'}
+        tone={trainingLeft === 0 ? 'ok' : 'default'}
+        to="/training"
+        loading={loading}
+        error={compliance.error && 'Unavailable'}
+      />
+
+      <StatCard
+        label="Overdue items"
+        icon="clock"
+        accent={overdue > 0 ? 'red' : 'blue'}
+        value={summary ? overdue : null}
+        sub={overdue > 0 ? 'Past their due date — do these first' : 'Nothing is late'}
+        tone={overdue > 0 ? 'alert' : summary ? 'ok' : 'default'}
+        to="/policies"
+        loading={loading}
+        error={compliance.error && 'Unavailable'}
+      />
+
       <Widget
         title="Your compliance"
         subtitle="policies acknowledged and training passed"
-        tall
+        span="third"
         loading={loading}
         loadingLabel="Loading your compliance…"
         error={compliance.error && `Compliance summary unavailable. ${compliance.error}`}
@@ -69,43 +105,9 @@ const MyTasks = () => {
         )}
       </Widget>
 
-      <StatCard
-        label="Policies to read"
-        icon="policies"
-        value={policiesLeft}
-        sub={policiesLeft === 0 ? 'all acknowledged' : 'awaiting your confirmation'}
-        tone={policiesLeft === 0 ? 'ok' : 'default'}
-        to="/policies"
-        loading={loading}
-        error={compliance.error && 'Unavailable'}
-      />
+      <MyTraining span="three" />
 
-      <StatCard
-        label="Training to complete"
-        icon="training"
-        value={trainingLeft}
-        sub={trainingLeft === 0 ? 'all passed' : 'modules still open'}
-        tone={trainingLeft === 0 ? 'ok' : 'default'}
-        to="/training"
-        loading={loading}
-        error={compliance.error && 'Unavailable'}
-      />
-
-      <StatCard
-        label="Overdue"
-        icon="clock"
-        value={summary ? overdue : null}
-        sub={overdue > 0 ? 'past their due date — do these first' : 'nothing is late'}
-        tone={overdue > 0 ? 'alert' : summary ? 'ok' : 'default'}
-        wide
-        to="/policies"
-        loading={loading}
-        error={compliance.error && 'Unavailable'}
-      />
-
-      <MyPolicies />
-
-      <MyTraining />
+      <MyPolicies span="full" />
     </div>
   );
 };
