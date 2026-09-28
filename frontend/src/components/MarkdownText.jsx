@@ -8,6 +8,8 @@
 //
 // Supported, because it is what policy documents actually use: ## headings,
 // - bullets, 1. numbered lists, paragraphs, **bold**, *italic* and `code`.
+// Training content adds two more: > quotes (an example email, a tip) and
+// | pipe | tables |.
 
 // `__text__` is underline here rather than markdown's usual second spelling of
 // bold. Policy documents genuinely underline things, standard markdown has no
@@ -51,6 +53,13 @@ const takeAlignment = (text) => {
 
 // Groups lines into blocks first, so a list stays one <ul> rather than
 // becoming a run of single-item lists.
+// The cells of one `| a | b |` row. The outer pipes are optional.
+const tableCells = (line) =>
+  line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((cell) => cell.trim());
+
+// The `|---|:---:|` line between a table's header and its body.
+const isTableDivider = (line) => /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$/.test(line);
+
 const toBlocks = (source) => {
   const blocks = [];
   let list = null;
@@ -62,8 +71,31 @@ const toBlocks = (source) => {
 
   source.split('\n').forEach((raw) => {
     const line = raw.trimEnd();
+    const previousBlock = blocks[blocks.length - 1];
 
     if (!line.trim()) return closeList();
+
+    // Each quoted line keeps its own line, because what is quoted is usually
+    // an email where From and Subject must not run together. A bare `>` is a
+    // gap inside the same quote.
+    const quote = line.match(/^\s*>\s?(.*)$/);
+    if (quote) {
+      closeList();
+      if (previousBlock && previousBlock.type === 'quote') {
+        previousBlock.lines.push(quote[1]);
+        return undefined;
+      }
+      return blocks.push({ type: 'quote', lines: [quote[1]] });
+    }
+
+    if (line.trim().startsWith('|')) {
+      closeList();
+      if (previousBlock && previousBlock.type === 'table') {
+        if (!isTableDivider(line)) previousBlock.rows.push(tableCells(line));
+        return undefined;
+      }
+      return blocks.push({ type: 'table', header: tableCells(line), rows: [] });
+    }
 
     // The marker sits before the heading hashes, so it is taken off first.
     const { text: unaligned, align } = takeAlignment(line);
@@ -127,6 +159,45 @@ const MarkdownText = ({ children }) => {
             <Tag key={key} className={alignClass}>
               {renderInline(block.text)}
             </Tag>
+          );
+        }
+
+        if (block.type === 'quote') {
+          return (
+            <blockquote key={key}>
+              {block.lines.map((text, lineIndex) => (
+                // eslint-disable-next-line react/no-array-index-key
+                <p key={lineIndex}>{text.trim() ? renderInline(text) : null}</p>
+              ))}
+            </blockquote>
+          );
+        }
+
+        if (block.type === 'table') {
+          return (
+            <div key={key} className="table-wrap">
+              <table className="table table--fixed">
+                <thead>
+                  <tr>
+                    {block.header.map((cell, cellIndex) => (
+                      // eslint-disable-next-line react/no-array-index-key
+                      <th key={cellIndex} scope="col">{renderInline(cell)}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {block.rows.map((row, rowIndex) => (
+                    // eslint-disable-next-line react/no-array-index-key
+                    <tr key={rowIndex}>
+                      {row.map((cell, cellIndex) => (
+                        // eslint-disable-next-line react/no-array-index-key
+                        <td key={cellIndex}>{renderInline(cell)}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           );
         }
 

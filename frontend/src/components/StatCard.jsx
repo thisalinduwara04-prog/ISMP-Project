@@ -39,23 +39,30 @@ const StatCard = ({
 
   return (
     <Tag to={to} className={classes.join(' ')}>
-      <span className="stat-card__label">
-        {icon ? <Icon name={icon} className="" /> : null}
-        {label}
-      </span>
-
-      <span className="stat-card__value">
-        {loading ? '…' : null}
-        {!loading && error ? <span className="stat-card__sub">{error}</span> : null}
-        {!loading && !error ? shown : null}
-      </span>
-
-      {sub && !error ? (
-        <span className="stat-card__sub">
-          {TONE_GLYPH[tone] ? <Icon name={TONE_GLYPH[tone]} className="" /> : null}
-          {sub}
+      {icon ? (
+        <span className="stat-card__icon">
+          <Icon name={icon} className="" />
         </span>
       ) : null}
+
+      <span className="stat-card__body">
+        <span className="stat-card__label">{label}</span>
+
+        <span className="stat-card__value">
+          {loading ? '…' : null}
+          {!loading && error ? <span className="stat-card__sub">{error}</span> : null}
+          {!loading && !error ? shown : null}
+        </span>
+
+        {sub && !error ? (
+          <span className="stat-card__sub">
+            {TONE_GLYPH[tone] ? <Icon name={TONE_GLYPH[tone]} className="" /> : null}
+            {sub}
+          </span>
+        ) : null}
+      </span>
+
+      {to ? <Icon name="chevron" className="stat-card__chevron" /> : null}
     </Tag>
   );
 };

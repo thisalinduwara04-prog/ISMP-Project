@@ -932,6 +932,32 @@
   margin-bottom: 0.375rem;
 }
 
+/* A quoted example (a scam email) or a tip: set apart by a rule on the left.
+   Each quoted line is its own <p>, so the gap between them is kept tight. */
+.prose blockquote {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--line);
+  background: var(--canvas);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.prose blockquote p {
+  min-height: 0.75rem;
+  margin: 0;
+}
+
+.prose .table-wrap {
+  margin: 0 0 1rem;
+}
+
+/* The table rule sets nowrap and the prose rule sets pre-wrap; a table in
+   prose wants neither, so cell text wraps at word boundaries. */
+.prose .table {
+  white-space: normal;
+  line-height: 1.5;
+}
+
 .prose code {
   padding: 0.0625rem 0.3125rem;
   background: var(--canvas);
@@ -1169,6 +1195,11 @@
   flex-wrap: wrap;
   gap: 0.5rem;
   margin: 0.875rem 0 0;
+}
+
+/* A confirmation alert opened by the buttons above it needs room to breathe. */
+.confirm-actions + .alert {
+  margin-top: 1rem;
 }
 
 /* --- Policy authoring (admin) -------------------------------------------- */

@@ -20,7 +20,7 @@ const COLOURS = {
 
 // Every dash length below is a fraction of this circumference, which is what
 // makes the arcs add up to exactly one turn.
-const RADIUS = 60;
+const RADIUS = 58;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 const SeverityPie = ({ counts = {} }) => {
@@ -45,7 +45,7 @@ const SeverityPie = ({ counts = {} }) => {
 
   return (
     <div className="pie">
-      <svg width="150" height="150" viewBox="0 0 150 150" role="img"
+      <svg width="175" height="175" viewBox="0 0 150 150" role="img"
         aria-label={`Incidents by severity: ${label}`}
       >
         <g transform="rotate(-90 75 75)">
@@ -60,7 +60,7 @@ const SeverityPie = ({ counts = {} }) => {
                 r={RADIUS}
                 fill="none"
                 stroke={COLOURS[slice.severity]}
-                strokeWidth="24"
+                strokeWidth="28"
                 strokeDasharray={`${length} ${CIRCUMFERENCE - length}`}
                 strokeDashoffset={-consumed}
               />

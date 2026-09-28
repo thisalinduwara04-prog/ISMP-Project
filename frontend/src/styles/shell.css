@@ -308,12 +308,27 @@
   color: var(--ink-soft);
 }
 
+/* The admin dashboard: six columns, so a row can be three stat cards (2+2+2),
+   two panels (3+3), or a stat card beside a wide panel (2+4). Panels in a row
+   stretch to one height; stat cards keep their own. */
+.widget-grid--dashboard {
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+.widget-grid--dashboard > .stat-card { grid-column: span 2; align-self: start; }
+.widget-grid--dashboard > .widget-grid__half { grid-column: span 3; }
+.widget-grid--dashboard > .widget-grid__three { grid-column: span 4; }
+
 /* --- Stat cards --- */
 
+/* Icon badge on the left, the figure in the middle, a chevron on the right
+   when the card is a link. */
 .stat-card {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  align-items: flex-start;
+  gap: 1rem;
   padding: 1.25rem;
   background: var(--surface-frosted);
   -webkit-backdrop-filter: var(--surface-blur);
@@ -339,11 +354,11 @@
 
 .stat-card--alert {
   background: var(--danger-tint);
-  box-shadow: inset 0 0 0 1px var(--danger), var(--shadow);
+  box-shadow: inset 0 0 0 1px var(--danger-line), var(--shadow);
 }
 
 .stat-card--alert:hover {
-  box-shadow: inset 0 0 0 1px var(--danger), var(--shadow-hover);
+  box-shadow: inset 0 0 0 1px var(--danger-line), var(--shadow-hover);
 }
 
 /* The counterpart to --alert, for a figure that is good news. Same rule
@@ -356,28 +371,53 @@
   box-shadow: inset 0 0 0 1px var(--ok-line), var(--shadow-hover);
 }
 
-.stat-card__label {
+.stat-card__icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: var(--ok-tint);
+  color: var(--ok);
+}
+
+.stat-card__icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.stat-card--alert .stat-card__icon {
+  background: rgba(164, 38, 44, 0.1);
+  color: var(--danger);
+}
+
+.stat-card__body {
   display: flex;
-  align-items: center;
-  gap: 0.4375rem;
-  font-size: 0.8125rem;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.stat-card__chevron {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
   color: var(--ink-soft);
 }
 
-.stat-card__label svg {
-  width: 15px;
-  height: 15px;
-  flex: 0 0 auto;
+.stat-card__label {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink-soft);
 }
 
 .stat-card__value {
-  font-size: 2rem;
+  font-size: 2.25rem;
   font-weight: 700;
   line-height: 1.1;
 }
-
-.stat-card--alert .stat-card__value { color: var(--danger); }
-.stat-card--ok .stat-card__value { color: var(--ok); }
 
 .stat-card__sub {
   display: flex;
@@ -540,19 +580,19 @@ a.widget:hover {
 .pie {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 2.5rem;
   flex-wrap: wrap;
 }
 
 .pie__legend {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.875rem;
   margin: 0;
   padding: 0;
-  min-width: 11rem;
+  min-width: 13rem;
   list-style: none;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
 }
 
 .pie__legend li {
@@ -562,31 +602,33 @@ a.widget:hover {
 }
 
 .pie__swatch {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   flex: 0 0 auto;
 }
 
 .pie__count {
   margin-left: auto;
-  padding-left: 1rem;
-  font-weight: 600;
+  padding-left: 3rem;
+  font-weight: 700;
 }
 
 /* --- Department bars --- */
 
 .dept-bar {
   display: grid;
-  grid-template-columns: 8rem 1fr 3rem;
+  grid-template-columns: 8.5rem 1fr 3.5rem;
   align-items: center;
-  gap: 0.75rem;
-  font-size: 0.875rem;
-  margin-bottom: 0.625rem;
+  gap: 1.25rem;
+  font-size: 0.9375rem;
+  margin-bottom: 1.125rem;
 }
 
+.dept-bar:last-child { margin-bottom: 0; }
+
 .dept-bar__track {
-  height: 8px;
+  height: 10px;
   border-radius: var(--pill);
   background: var(--line);
   overflow: hidden;
@@ -601,26 +643,40 @@ a.widget:hover {
 
 .dept-bar__value {
   text-align: right;
-  font-weight: 600;
+  font-weight: 700;
 }
 
-/* --- Activity list --- */
+/* --- Activity table ---
+   The dot is coloured by outcome, and the outcome is also in the text for a
+   screen reader, so colour is never the only signal (NFR-USE-03). */
 
-.activity { font-size: 0.875rem; }
-
-.activity__row {
+.activity__event {
   display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid var(--line);
+  align-items: center;
+  gap: 0.625rem;
 }
 
-.activity__row:last-child { border-bottom: 0; }
+.activity__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  background: var(--ok);
+}
 
-.activity__when {
-  color: var(--ink-soft);
-  white-space: nowrap;
+.activity__dot--failure { background: var(--danger); }
+.activity__dot--denied { background: var(--warning); }
+
+.activity__muted { color: var(--ink-soft); }
+
+/* "View all" in a widget header: a small pill rather than a full button. */
+.widget__action {
+  border-radius: var(--pill);
+}
+
+.widget__action svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* --- Compact feed, for the notifications widget ---
@@ -881,7 +937,8 @@ a.widget:hover {
   .stat-card--wide,
   .widget-grid__half,
   .widget-grid__three,
-  .widget-grid__full { grid-column: 1 / -1; }
+  .widget-grid__full,
+  .widget-grid.widget-grid--dashboard > * { grid-column: 1 / -1; }
 
   .widget-grid__tall { grid-row: auto; }
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import { getDashboard } from '../../api/compliance';
 import { listIncidents } from '../../api/incidents';
@@ -6,6 +7,7 @@ import { fetchUsers } from '../../api/users';
 import { fetchAuditLogs } from '../../api/audit';
 import ActivityList from '../../components/ActivityList';
 import DepartmentBars from '../../components/DepartmentBars';
+import Icon from '../../components/Icon';
 import SeverityPie from '../../components/SeverityPie';
 import StatCard from '../../components/StatCard';
 import Widget from '../../components/Widget';
@@ -79,15 +81,14 @@ const AdminConsole = () => {
   const summary = compliance.data?.summary;
 
   return (
-    <div className="widget-grid">
+    <div className="widget-grid widget-grid--dashboard">
       <StatCard
-        label="Open incidents"
+        label="Open Incidents"
         icon="incidents"
         value={incidents.data ? (openCount === 0 ? 'No open incidents' : openCount) : null}
         sub={escalated > 0 ? `${escalated} high or critical need attention` : 'open or in review'}
         to="/incidents"
         tone={escalated > 0 ? 'alert' : 'default'}
-        wide
         loading={!incidents.data && !incidents.error}
         error={incidents.error}
       />
@@ -103,7 +104,7 @@ const AdminConsole = () => {
       />
 
       <StatCard
-        label="Overdue items"
+        label="Overdue Items"
         icon="clock"
         value={summary ? summary.overdue : null}
         sub="past their due date"
@@ -115,7 +116,7 @@ const AdminConsole = () => {
 
       <Widget
         title="Recent incidents by severity"
-        subtitle={`latest ${RECENT_LIMIT}`}
+        subtitle={`Latest ${RECENT_LIMIT}`}
         to="/incidents"
         loading={!incidents.data && !incidents.error}
         loadingLabel="Loading incidents…"
@@ -148,8 +149,15 @@ const AdminConsole = () => {
       <Widget
         title="Recent activity"
         subtitle="latest security events"
-        to="/admin/audit-logs"
         span="three"
+        // A header link rather than `to`: the panel now holds a table, and a
+        // whole-panel link around it would swallow every click on the rows.
+        action={(
+          <Link to="/admin/audit-logs" className="btn btn--ghost btn--sm widget__action">
+            View all
+            <Icon name="chevron" className="" />
+          </Link>
+        )}
         loading={!activity.data && !activity.error}
         loadingLabel="Loading activity…"
         error={activity.error}
