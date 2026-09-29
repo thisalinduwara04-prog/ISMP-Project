@@ -874,8 +874,10 @@
 
 /* --- Policy reader (UC-10) ----------------------------------------------- */
 
+/* Wider than a form page, but still capped so a line of policy text does not
+   run the full width of a large monitor. */
 .page--reader {
-  max-width: 46rem;
+  max-width: 64rem;
 }
 
 .reader {
@@ -1096,6 +1098,22 @@
   gap: 0.5rem;
   align-items: center;
   flex-shrink: 0;
+}
+
+/* The status badge and the Read/Edit and Delete buttons sit in one row, so
+   they share one box: same height, same width, text centred. */
+.version-row__actions > .badge,
+.version-row__actions > .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 5.75rem;
+  min-height: 36px;
+  height: 36px;
+  padding: 0 0.625rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
 }
 
 .version-row__title {
