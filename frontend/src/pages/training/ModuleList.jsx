@@ -11,7 +11,7 @@ import { dueDescription } from '../../utils/format';
 // One screen, two audiences - the shape PolicyList already uses.
 //
 // An admin sees every module including drafts, with its audience, and goes to
-// the builder. Everybody else sees the published modules aimed at them, with
+// the read-only view (and from there to the builder). Everybody else sees the published modules aimed at them, with
 // their own progress, and goes to the player. WHICH modules come back is
 // decided by the API from the caller's role and department; this screen does no
 // filtering of its own, because anything it hid would still be reachable by
@@ -96,7 +96,10 @@ const ModuleList = () => {
           <ul className="policy-grid">
             {modules.map((module) => (
               <li key={module.id}>
-                <Link className="policy-card" to={`/training/modules/${module.id}/edit`}>
+                {/* Opens the read-only view first, like a policy's "Read":
+                    looking at a live module must not risk changing it. The
+                    editor is one click on from there. */}
+                <Link className="policy-card" to={`/training/modules/${module.id}/read`}>
                   <span className="policy-card__head">
                     <span className="policy-card__code">{module.code}</span>
                     <span

@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import Alert from '../../components/Alert';
 import Spinner from '../../components/Spinner';
-import MarkdownText from '../../components/MarkdownText';
+import ContentItemView from '../../components/ContentItemView';
 import { fetchModule, markItemComplete, startAttempt } from '../../api/training';
 import { formatDate, dueDescription } from '../../utils/format';
 
@@ -15,10 +15,6 @@ import { formatDate, dueDescription } from '../../utils/format';
 // preference: progress has to survive someone finishing on a different device
 // from the one they started on, and a warehouse terminal is shared, so state
 // left in a browser would be both lost and visible to the next person.
-
-// The API refuses anything else, but a record saved before that rule existed
-// could still hold a `javascript:` URL, which React 18 would render as-is.
-const isWebUrl = (url) => /^(https?:\/\/|\/)/i.test(url || '');
 
 const ModulePlayer = () => {
   const { moduleId } = useParams();
@@ -200,32 +196,7 @@ const ModulePlayer = () => {
                 {isDone && <span className="badge badge--ok">done</span>}
               </div>
 
-              {/* Markdown for the written sections, a player for video, a link
-                  for a PDF. `preload="metadata"` so a phone on 4G does not
-                  download the whole file before the page is usable. */}
-              {(item.type === 'VIDEO' || item.type === 'PDF') && !isWebUrl(item.mediaUrl) ? (
-                <p className="muted">This item has no valid link.</p>
-              ) : item.type === 'VIDEO' ? (
-                <video className="player__video" src={item.mediaUrl} controls preload="metadata">
-                  <track kind="captions" />
-                  <a href={item.mediaUrl}>Download the video</a>
-                </video>
-              ) : item.type === 'PDF' ? (
-                <p>
-                  <a
-                    className="btn btn--ghost"
-                    href={item.mediaUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Open the PDF
-                  </a>
-                </p>
-              ) : (
-                <div className="prose">
-                  <MarkdownText>{item.body}</MarkdownText>
-                </div>
-              )}
+              <ContentItemView item={item} />
 
               {/* Sticky on a phone: "Mark complete and continue" is the whole
                   loop, and it belongs under the thumb rather than below a

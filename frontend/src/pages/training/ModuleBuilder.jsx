@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import Alert from '../../components/Alert';
 import Spinner from '../../components/Spinner';
@@ -628,6 +628,16 @@ const ModuleBuilder = () => {
             : `${saved.code} · ${isPublished ? 'published' : 'draft, not visible to staff'}`}
         </p>
       </header>
+
+      {/* Back to the read-only view. Unsaved edits are not carried over - the
+          view shows the module as it is stored. */}
+      {!isNew && (
+        <div className="list-toolbar">
+          <Link to={`/training/modules/${saved.id}/read`} className="btn btn--primary btn--sm btn--wide">
+            Read
+          </Link>
+        </div>
+      )}
 
       {notice && <Alert tone="success">{notice}</Alert>}
 
