@@ -13,9 +13,9 @@ const envelope = (req) => ({
   requestId: req.id,
 });
 
-// Keyed on IP AND account together, which stops the two obvious attacks:
-//   - one IP spraying many accounts  (caught by the IP half)
-//   - a botnet targeting one account (caught by the employeeId half)
+// Keyed on IP AND account together, so it slows one address hammering one
+// account. It does NOT catch one address trying a password against many
+// accounts (each pair gets its own counter) - `loginIpLimiter` below does.
 //
 // The limit is intentionally HIGHER than MAX_LOGIN_ATTEMPTS. Both controls
 // guard the same endpoint, and the limiter runs first, so if the two
@@ -38,6 +38,21 @@ const loginLimiter = rateLimit({
   // Off by default in tests, since most suites drive many logins from one
   // address. The dedicated limiter suite opts back in with this flag so the
   // interaction between the limiter and the lockout is still covered.
+  skip: () => env.isTest && process.env.ENABLE_RATE_LIMIT_IN_TESTS !== 'true',
+  handler: (req, res) => res.status(TOO_MANY_REQUESTS).json(envelope(req)),
+});
+
+// Password spraying: one address trying a common password against many
+// accounts, staying under each account's lockout. Counted per IP across all
+// accounts. Only failures count, and the bar is set well above one person's
+// mistakes so a classroom behind one shared address is not blocked.
+const loginIpLimiter = rateLimit({
+  windowMs: env.LOCK_TIME_MINUTES * 60 * 1000,
+  limit: 50,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  keyGenerator: (req) => `login-ip:${req.ip}`,
+  skipSuccessfulRequests: true,
   skip: () => env.isTest && process.env.ENABLE_RATE_LIMIT_IN_TESTS !== 'true',
   handler: (req, res) => res.status(TOO_MANY_REQUESTS).json(envelope(req)),
 });
@@ -68,4 +83,4 @@ const globalLimiter = rateLimit({
   handler: (req, res) => res.status(TOO_MANY_REQUESTS).json(envelope(req)),
 });
 
-module.exports = { loginLimiter, passwordCheckLimiter, globalLimiter };
+module.exports = { loginLimiter, loginIpLimiter, passwordCheckLimiter, globalLimiter };
