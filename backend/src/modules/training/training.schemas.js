@@ -66,7 +66,17 @@ const contentItemInput = z
     type: z.enum(ALL_CONTENT_ITEM_TYPES),
     title: itemTitle,
     body: z.string().trim().max(20000, 'That content item is too long.').optional(),
-    mediaUrl: z.string().trim().max(2000).optional(),
+    // Rendered as a link and a <video src> for every learner, so only web
+    // addresses are accepted. React 18 still renders a `javascript:` href, which
+    // would otherwise let the author's text run as script in the learner's session.
+    mediaUrl: z
+      .string()
+      .trim()
+      .max(2000)
+      .refine((url) => url === '' || /^(https?:\/\/|\/)/i.test(url), {
+        message: 'Must be a web address starting with http://, https:// or /.',
+      })
+      .optional(),
     durationSeconds: z.coerce.number().int().min(0).max(86400).nullable().optional(),
   })
   .strict();

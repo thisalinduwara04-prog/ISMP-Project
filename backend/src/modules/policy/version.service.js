@@ -70,12 +70,10 @@ const loadVersion = async (policyId, versionId) => {
   return version;
 };
 
-// NOTE: the change note is no longer required from version 2 onward, at the
-// project owner's request - the field has been removed from the authoring
-// screen. `changeNote` remains on the schema and is still displayed to staff
-// when a version carries one, so nothing already recorded is lost. See
-// docs/traceability-m2.md: this relaxes UC-08 and US-011, which both describe
-// publishing a new version WITH a change note explaining what changed.
+// The change note is optional on version 1 and required from version 2 onward
+// (UC-08, US-011). The rule is enforced by the PolicyVersion model, so a draft
+// saved without one is refused with "A change note is required from version 2
+// onward." The authoring screen asks for it on every version after the first.
 
 // --- T3: draft authoring ----------------------------------------------------
 

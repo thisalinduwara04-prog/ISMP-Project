@@ -42,6 +42,21 @@ const loginLimiter = rateLimit({
   handler: (req, res) => res.status(TOO_MANY_REQUESTS).json(envelope(req)),
 });
 
+// Step-up and change-password both check the current password, and neither
+// goes through the login lockout. Without this, someone holding a stolen
+// session could guess the account's password as fast as they liked. Keyed on
+// the signed-in user, so it must run after `authenticate`.
+const passwordCheckLimiter = rateLimit({
+  windowMs: env.LOCK_TIME_MINUTES * 60 * 1000,
+  limit: env.MAX_LOGIN_ATTEMPTS,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  keyGenerator: (req) => `user:${req.user ? req.user._id.toString() : req.ip}`,
+  skipSuccessfulRequests: true,
+  skip: () => env.isTest && process.env.ENABLE_RATE_LIMIT_IN_TESTS !== 'true',
+  handler: (req, res) => res.status(TOO_MANY_REQUESTS).json(envelope(req)),
+});
+
 // A wide backstop for the rest of the API, generous enough that normal SPA
 // usage never notices it.
 const globalLimiter = rateLimit({
@@ -53,4 +68,4 @@ const globalLimiter = rateLimit({
   handler: (req, res) => res.status(TOO_MANY_REQUESTS).json(envelope(req)),
 });
 
-module.exports = { loginLimiter, globalLimiter };
+module.exports = { loginLimiter, passwordCheckLimiter, globalLimiter };
