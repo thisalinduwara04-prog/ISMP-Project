@@ -189,7 +189,11 @@ const getOutstanding = async (scope, filters = {}, page = 1, pageSize = 20) => {
 };
 
 const getUserCompliance = async (scope, userId) => {
-  const user = await User.findById(userId).lean();
+  // Only what identifies the person - never tokenVersion or other account
+  // internals, which a raw document would carry.
+  const user = await User.findById(userId)
+    .select('employeeId fullName email department role jobTitle status')
+    .lean();
   if (!user) throw new AppError(NOT_FOUND, 'User not found.', AppErrorCode.NOT_FOUND);
   if (scope.level === SCOPE.SELF && user._id.toString() !== scope.userId.toString()) {
     throw new AppError(NOT_FOUND, 'User not found.', AppErrorCode.USER_OUT_OF_SCOPE);

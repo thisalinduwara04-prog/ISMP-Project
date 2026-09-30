@@ -1,7 +1,11 @@
 const express = require('express');
 
 const controller = require('./compliance.controller');
-const { authenticate, requireRecentAuthentication } = require('../../middleware/authenticate');
+const {
+  authenticate,
+  requirePasswordChanged,
+  requireRecentAuthentication,
+} = require('../../middleware/authenticate');
 const { ROLES } = require('../../constants/roles');
 const { requireCapability, resolveScope } = require('../../middleware/authorize');
 const { validate } = require('../../middleware/validate');
@@ -10,7 +14,9 @@ const { CAPABILITIES } = require('../../constants/permissions');
 const schemas = require('./compliance.schemas');
 
 const router = express.Router();
-router.use(authenticate);
+// A temporary password must be changed before any compliance data is shown -
+// for a manager or admin that data covers other people (US-003).
+router.use(authenticate, requirePasswordChanged);
 
 const requireAdminStepUp = (req, res, next) => (
   req.user.role === ROLES.ADMIN ? requireRecentAuthentication(30)(req, res, next) : next()

@@ -6,8 +6,13 @@ const env = require('../config/env');
 
 // Correlates a client-visible `requestId` in the error envelope with the
 // server-side log line for the same request.
+// A client-supplied id is reused only if it is short and plain, because it is
+// echoed into a response header and written to the log.
+const SAFE_REQUEST_ID = /^[\w-]{1,64}$/;
+
 const requestId = (req, res, next) => {
-  req.id = req.get('x-request-id') || crypto.randomUUID();
+  const supplied = req.get('x-request-id');
+  req.id = supplied && SAFE_REQUEST_ID.test(supplied) ? supplied : crypto.randomUUID();
   res.set('x-request-id', req.id);
   next();
 };

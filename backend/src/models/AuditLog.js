@@ -50,5 +50,15 @@ auditLogSchema.pre('findOneAndUpdate', guard);
 auditLogSchema.pre('deleteOne', guard);
 auditLogSchema.pre('deleteMany', guard);
 auditLogSchema.pre('findOneAndDelete', guard);
+// Replacing a document is an update by another name.
+auditLogSchema.pre('replaceOne', guard);
+auditLogSchema.pre('findOneAndReplace', guard);
+
+// A loaded entry saved again would overwrite it, so only the first save - the
+// insert - is allowed.
+auditLogSchema.pre('save', function blockResave(next) {
+  if (!this.isNew) return guard(next);
+  return next();
+});
 
 module.exports = mongoose.model('AuditLog', auditLogSchema);

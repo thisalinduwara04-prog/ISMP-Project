@@ -4,13 +4,17 @@ const controller = require('./auth.controller');
 const { loginSchema, changePasswordSchema, stepUpSchema } = require('./auth.schemas');
 const { validate } = require('../../middleware/validate');
 const { authenticate } = require('../../middleware/authenticate');
-const { loginLimiter } = require('../../middleware/rateLimit');
+const {
+  loginLimiter,
+  loginIpLimiter,
+  passwordCheckLimiter,
+} = require('../../middleware/rateLimit');
 
 const router = express.Router();
 
 // Public. The limiter runs before validation so a flood of malformed bodies is
 // also absorbed.
-router.post('/login', loginLimiter, validate(loginSchema), controller.login);
+router.post('/login', loginIpLimiter, loginLimiter, validate(loginSchema), controller.login);
 
 // Authenticated by the refresh cookie alone - the access token is expected to
 // be expired by the time this is called.
@@ -27,10 +31,17 @@ router.get('/me', authenticate, controller.me);
 router.post(
   '/change-password',
   authenticate,
+  passwordCheckLimiter,
   validate(changePasswordSchema),
   controller.changePassword
 );
 
-router.post('/step-up', authenticate, validate(stepUpSchema), controller.stepUp);
+router.post(
+  '/step-up',
+  authenticate,
+  passwordCheckLimiter,
+  validate(stepUpSchema),
+  controller.stepUp
+);
 
 module.exports = router;
