@@ -39,9 +39,6 @@ const RichTextArea = ({
   disabled,
   rows = 16,
   placeholder,
-  onAttach,
-  attachLabel = 'Attach a PDF',
-  attachDisabled = false,
 }) => {
   const ref = useRef(null);
 
@@ -160,16 +157,6 @@ const RichTextArea = ({
         <span className="toolbar__divider" aria-hidden="true" />
 
         {button('</>', 'Code', () => wrap('code'))}
-
-        {onAttach && (
-          <>
-            <span className="toolbar__divider" aria-hidden="true" />
-            {button('📎 PDF', attachLabel, onAttach, {
-              className: 'toolbar__btn--attach',
-              isDisabled: attachDisabled,
-            })}
-          </>
-        )}
       </div>
 
       <textarea

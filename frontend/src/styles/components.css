@@ -1521,10 +1521,6 @@
   background-position: right top, right center, right bottom;
 }
 
-.toolbar__btn--attach {
-  font-weight: 600;
-}
-
 /* A policy whose content is the PDF: embedded so the reader can actually read
    it before being asked to confirm they have. Tall enough to be usable, and it
    scrolls internally rather than stretching the page. */

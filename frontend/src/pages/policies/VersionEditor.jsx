@@ -34,6 +34,7 @@ const MAX_ATTACHMENTS = 5;
 const emptyDraft = {
   title: '',
   body: '',
+  changeNote: '',
   targetRoles: [],
   targetDepartments: [],
   dueInDays: 14,
@@ -53,8 +54,7 @@ const VersionEditor = () => {
   const [preview, setPreview] = useState(false);
   const [confirmingPublish, setConfirmingPublish] = useState(false);
 
-  // Shared by the toolbar button and the attachment panel, so there is one
-  // file input and one upload path rather than two that could drift.
+  // The hidden file input opened by the attachment panel's button.
   const fileInputRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -81,6 +81,7 @@ const VersionEditor = () => {
       setDraft({
         title: versionData.version.title,
         body: versionData.version.body,
+        changeNote: versionData.version.changeNote || '',
         targetRoles: versionData.version.targetRoles || [],
         targetDepartments: versionData.version.targetDepartments || [],
         dueInDays: versionData.version.dueInDays,
@@ -115,6 +116,8 @@ const VersionEditor = () => {
     ? (policy?.versions?.[0]?.versionNumber || 0) + 1
     : existing?.versionNumber;
   const isDraft = isNew || existing?.status === 'DRAFT';
+  // Mirrors the PolicyVersion model, which refuses v2+ without a change note.
+  const needsChangeNote = nextVersionNumber >= 2;
 
   const attachedFiles = existing?.attachments || [];
   const hasContent = draft.body.trim().length > 0 || attachedFiles.length > 0;
@@ -124,6 +127,7 @@ const VersionEditor = () => {
   const buildPayload = () => ({
     title: draft.title.trim(),
     body: draft.body,
+    changeNote: draft.changeNote.trim(),
     targetRoles: draft.targetRoles,
     targetDepartments: draft.targetDepartments,
     dueInDays: Number(draft.dueInDays),
@@ -149,6 +153,9 @@ const VersionEditor = () => {
       });
     } catch (saveError) {
       setError(saveError);
+      // The error banner is at the top of the page, well above this button,
+      // so bring it into view rather than leaving the click silent.
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       setBusy(false);
     }
   };
@@ -218,6 +225,7 @@ const VersionEditor = () => {
       await load();
     } catch (uploadError) {
       setError(uploadError);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setBusy(false);
       // Allows re-selecting the same file after a rejection.
@@ -321,6 +329,24 @@ const VersionEditor = () => {
           />
         </label>
 
+        {needsChangeNote && (
+          <label className="field" htmlFor="v-change-note">
+            <span className="field__label">What changed?</span>
+            <input
+              id="v-change-note"
+              className="field__input"
+              value={draft.changeNote}
+              maxLength={1000}
+              disabled={!isDraft}
+              placeholder="e.g. Added USB storage restriction"
+              onChange={(event) => setDraft({ ...draft, changeNote: event.target.value })}
+            />
+            <small className="field__help">
+              Required from version 2. Staff asked to acknowledge again see this note.
+            </small>
+          </label>
+        )}
+
         <div className="field">
           <div className="field__row">
             <span className="field__label" id="body-label">
@@ -346,12 +372,6 @@ const VersionEditor = () => {
               disabled={!isDraft}
               onChange={(body) => setDraft({ ...draft, body })}
               placeholder={'## Purpose\n\nWhy this policy exists.\n\n## The rule\n\n- What people must do.'}
-              // The PDF belongs to the version, not to a position in the text,
-              // so the toolbar button opens the same file picker as the
-              // attachment panel below rather than inserting anything.
-              onAttach={() => fileInputRef.current?.click()}
-              attachLabel="Upload a PDF"
-              attachDisabled={attachedFiles.length >= MAX_ATTACHMENTS}
             />
           )}
           <small className="field__help">
@@ -361,8 +381,7 @@ const VersionEditor = () => {
         </div>
 
         {/* Directly below the text, because the two together are the document:
-            the wording staff read on screen and the PDFs it comes from. The
-            toolbar's clip opens this same picker. */}
+            the wording staff read on screen and the PDFs it comes from. */}
         <div className="field attachment">
           <span className="field__label">Upload PDF</span>
 
@@ -489,10 +508,9 @@ const VersionEditor = () => {
         </label>
       </section>
 
-      {/* One file input for the whole screen, rendered whenever the version is
-          editable - including before it is saved, so the toolbar's attach
-          button always has something to open. Hidden because both the toolbar
-          button and the panel below trigger it. */}
+      {/* The file input behind "Choose a PDF…", rendered whenever the version
+          is editable - including before it is saved. Hidden because the button
+          in the attachment panel triggers it. */}
       {isDraft && (
         <input
           ref={fileInputRef}

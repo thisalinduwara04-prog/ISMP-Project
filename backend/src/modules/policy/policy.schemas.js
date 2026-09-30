@@ -94,7 +94,7 @@ const createVersionSchema = z
     body: z.string().trim().max(100000).optional(),
     // Required from v2 onward. The version number is not known until the
     // service has looked at the existing versions, so that conditional rule
-    // lives in the service rather than here.
+    // lives in the PolicyVersion model rather than here.
     changeNote: z.string().trim().max(1000).optional(),
     targetRoles: z.array(z.enum(ALL_ROLES)).max(ALL_ROLES.length).optional(),
     targetDepartments: z.array(z.enum(ALL_DEPARTMENTS)).max(ALL_DEPARTMENTS.length).optional(),

@@ -29,14 +29,15 @@ const signAccessToken = (user, authTime = Math.floor(Date.now() / 1000)) =>
       auth_time: authTime,
     },
     env.JWT_ACCESS_SECRET,
-    { expiresIn: `${env.ACCESS_TOKEN_TTL_MINUTES}m` }
+    { algorithm: 'HS256', expiresIn: `${env.ACCESS_TOKEN_TTL_MINUTES}m` }
   );
 
 // Returns { payload } or { error } rather than throwing, so callers can
 // distinguish an expired token from a forged one and respond differently.
 const verifyAccessToken = (token) => {
   try {
-    return { payload: jwt.verify(token, env.JWT_ACCESS_SECRET) };
+    // Pinned, so a token cannot choose its own algorithm (e.g. `none`).
+    return { payload: jwt.verify(token, env.JWT_ACCESS_SECRET, { algorithms: ['HS256'] }) };
   } catch (error) {
     return { error: error.message, expired: error.name === 'TokenExpiredError' };
   }
