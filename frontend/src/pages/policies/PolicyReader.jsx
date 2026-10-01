@@ -50,6 +50,9 @@ const PolicyReader = () => {
     try {
       const data = await fetchVersion(policyId, versionId);
       setVersion(data.version);
+      // Already confirmed on an earlier visit: show that record rather than
+      // the empty form, which would look as though it had been lost.
+      setReceipt(data.version.acknowledgement || null);
     } catch (error) {
       setLoadError(error);
     }
