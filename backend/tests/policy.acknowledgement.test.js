@@ -1,6 +1,7 @@
 const {
   app,
   request,
+  API_PREFIX,
   POLICIES,
   makeUser,
   makeAdmin,
@@ -13,6 +14,7 @@ const {
 const Acknowledgement = require('../src/models/Acknowledgement');
 const Assignment = require('../src/models/Assignment');
 const assignmentService = require('../src/modules/assignment/assignment.service');
+const complianceService = require('../src/modules/compliance/compliance.service');
 const { ASSIGNMENT_ITEM_TYPE, ASSIGNMENT_STATUS } = require('../src/constants/assignments');
 const { POLICY_VERSION_STATUS, POLICY_STATUS } = require('../src/constants/policies');
 const PolicyVersion = require('../src/models/PolicyVersion');
@@ -53,6 +55,70 @@ describe('Acknowledgement', () => {
     const assignment = await Assignment.findOne({ userId: employee._id, itemId: version._id });
     expect(assignment.status).toBe(ASSIGNMENT_STATUS.COMPLETED);
     expect(assignment.completionRef.toString()).toBe(response.body.data.acknowledgement.id);
+  });
+
+  // The reader keeps nothing between visits, so the version itself has to say
+  // whether THIS caller has already confirmed it. Without that, coming back to
+  // an acknowledged policy showed the empty confirmation form again.
+  it('tells the reader about an acknowledgement made on an earlier visit', async () => {
+    const versionUrl = `${POLICIES}/${policy._id}/versions/${version._id}`;
+
+    const before = await request(app).get(versionUrl).set(as(employee));
+    expect(before.status).toBe(200);
+    expect(before.body.data.version.acknowledgement).toBeNull();
+
+    const recorded = await request(app).post(acknowledgeUrl()).set(as(employee)).send({});
+
+    const after = await request(app).get(versionUrl).set(as(employee));
+    expect(after.body.data.version.acknowledgement.id).toBe(recorded.body.data.acknowledgement.id);
+    expect(after.body.data.version.acknowledgement.acknowledgedAt).toBeDefined();
+
+    // Somebody else's acknowledgement is not theirs to see, or to inherit.
+    const adminView = await request(app).get(versionUrl).set(as(admin));
+    expect(adminView.body.data.version.acknowledgement).toBeNull();
+  });
+
+  describe('compliance figures', () => {
+    const COMPLIANCE = `${API_PREFIX}/compliance`;
+
+    it('moves the employee from outstanding to complete', async () => {
+      const before = await request(app).get(`${COMPLIANCE}/me`).set(as(employee));
+      expect(before.body.data.summary).toMatchObject({ total: 1, completed: 0, outstanding: 1 });
+
+      await request(app).post(acknowledgeUrl()).set(as(employee)).send({});
+
+      const after = await request(app).get(`${COMPLIANCE}/me`).set(as(employee));
+      expect(after.body.data.summary).toMatchObject({
+        total: 1,
+        completed: 1,
+        outstanding: 0,
+        compliancePercent: 100,
+      });
+      expect(after.body.data.assignments[0].status).toBe(ASSIGNMENT_STATUS.COMPLETED);
+    });
+
+    it('is counted once on the dashboard, however often it is re-submitted', async () => {
+      // The dashboard caches for 60 seconds (UC-19 2b), so each read here
+      // starts from an empty cache to see the ledger as it now stands.
+      complianceService.clearDashboardCache();
+      const before = await request(app).get(`${COMPLIANCE}/dashboard`).set(as(admin));
+      expect(before.status).toBe(200);
+      // The employee and the admin both hold the assignment.
+      expect(before.body.data.summary).toMatchObject({ total: 2, completed: 0 });
+
+      await request(app).post(acknowledgeUrl()).set(as(employee)).send({});
+      await request(app).post(acknowledgeUrl()).set(as(employee)).send({});
+
+      complianceService.clearDashboardCache();
+      const after = await request(app).get(`${COMPLIANCE}/dashboard`).set(as(admin));
+      expect(after.body.data.summary).toMatchObject({
+        total: 2,
+        completed: 1,
+        outstanding: 1,
+        compliancePercent: 50,
+      });
+      expect(after.body.data.summary.policy).toMatchObject({ total: 2, completed: 1 });
+    });
   });
 
   it('is idempotent: a second submit returns the original record and creates no duplicate', async () => {

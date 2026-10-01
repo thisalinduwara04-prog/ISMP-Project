@@ -21,6 +21,7 @@ const {
 } = require('../../constants/policies');
 const { isAdmin, toVersionSummary, notFound } = require('./policy.service');
 const attachmentService = require('./attachment.service');
+const { toAcknowledgementView } = require('./acknowledgement.service');
 
 // Version authoring (T3) and publication (T4).
 //
@@ -53,6 +54,22 @@ const toVersionDetail = (version, attachments = []) => ({
 // read path goes through this rather than remembering to fetch them.
 const withAttachments = async (version) =>
   toVersionDetail(version, await attachmentService.listForVersion(version.policyId, version._id));
+
+// What the reader gets: the version, plus the caller's OWN acknowledgement of
+// it (or null). The record lives on the server, so the reader has to be told -
+// otherwise someone who confirmed, left and came back is shown the empty
+// confirmation form again, as though nothing had been recorded.
+const forReader = async (version, user) => {
+  const acknowledgement = await Acknowledgement.findOne({
+    userId: user._id,
+    policyVersionId: version._id,
+  });
+
+  return {
+    ...(await withAttachments(version)),
+    acknowledgement: acknowledgement ? toAcknowledgementView(acknowledgement) : null,
+  };
+};
 
 const loadPolicy = async (policyId) => {
   const policy = await Policy.findById(policyId);
@@ -168,7 +185,7 @@ const updateDraft = async (policyId, versionId, payload) => {
 const getVersion = async (policyId, versionId, user, req) => {
   const version = await loadVersion(policyId, versionId);
 
-  if (isAdmin(user)) return withAttachments(version);
+  if (isAdmin(user)) return forReader(version, user);
 
   // Refused reads are audited, not merely refused. A burst of these from one
   // account is what someone probing for documents they should not see looks
@@ -216,7 +233,7 @@ const getVersion = async (policyId, versionId, user, req) => {
     req,
   });
 
-  return withAttachments(version);
+  return forReader(version, user);
 };
 
 // Deleting one version.

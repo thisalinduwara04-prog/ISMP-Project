@@ -53,10 +53,19 @@ Anything done with your account is recorded as done by **you** — every stock c
 - Never let a colleague "just use your login for a minute". Everyone has their own account.
 
 #### Passwords
-- At least **12 characters**. A few random words work well, e.g. *river-lamp-tiger-42*.
-- Not your name, employee ID, birthday, "Savikro" or "12345678".
+When you change your password, the platform shows a checklist. Your new password must have **all five**:
+- at least **8 characters**
+- an **uppercase** letter (A–Z)
+- a **lowercase** letter (a–z)
+- a **number** (0–9)
+- a **special character**, such as ! @ # $ % & * ?
+
+The **Update password** button only becomes active when every item is ticked.
+
+Ticking the boxes isn't enough on its own. *Savikro@2026* passes the checklist but is easy to guess. Join a few unrelated words with a number and a symbol instead, e.g. *Tiger!Lamp-River7* (don't use this exact example).
+- Don't use your name, employee ID, birthday, "Savikro" or "LS Electric".
 - Don't write it on a sticky note on the terminal.
-- If you think someone knows it, change it straight away.
+- If you think someone knows it, change it straight away. Changing your password **signs you out on every other device**, so anyone else using your account is logged out.
 
 #### Lock-out emails
 After 5 wrong attempts your account locks for 15 minutes and you get an email. If you get one and it **wasn't you**, someone may be trying your account — report it as **Unauthorised access**.
@@ -150,13 +159,13 @@ Which password is the strongest?
 
 *Single choice*
 
-- [ ] **A.** Savikro2026
-- [ ] **B.** SVK-014
-- [x] **C.** river-lamp-tiger-42
-- [ ] **D.** 12345678
+- [ ] **A.** savikro123
+- [ ] **B.** Savikro@2026
+- [x] **C.** Tiger!Lamp-River7
+- [ ] **D.** Pa55word
 
 **Answer:** C  
-**Why:** A long passphrase of unrelated words is strong and easy to remember. Company names and employee IDs are easy to guess.
+**Why:** Only Tiger!Lamp-River7 meets all five requirements (8+ characters, uppercase, lowercase, number, special character) without being easy to guess. Savikro@2026 passes the checklist but uses the company name and year. The other two miss requirements.
 
 ### Question 4
 
