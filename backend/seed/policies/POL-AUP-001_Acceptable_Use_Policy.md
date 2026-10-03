@@ -6,76 +6,120 @@ versionNumber: 1
 targetRoles: []          # all roles
 targetDepartments: []    # all departments
 dueInDays: 14
-description: How Savikro staff may use company IT, data and this compliance platform.
+description: The standards every employee must follow when using the Security Policy Awareness & Compliance Management Platform.
 ---
 
 # Acceptable Use Policy
 
-**Policy code:** POL-AUP-001 · **Version:** 1.0 · **Applies to:** All staff
-**Policy owner:** Administrator · **Approved by:** Savikro Enterprises Management
+**Policy code:** POL-AUP-001 · **Version:** 1.0 · **Applies to:** All Platform users
+**Effective date:** 29 September 2026 · **Approved by:** Savikro Enterprises Management
 
-## 1. Purpose
+## 1. Introduction
 
-Savikro Enterprises holds information that competitors, fraudsters and criminals would find valuable: LS Electric supplier pricing, customer contracts, quotations, dealer records and stock data. This policy sets out how everyone who works for Savikro may use company computers, phones, email, systems and information, so that this information stays safe and the business keeps the trust of LS Electric and our customers.
+This Acceptable Use Policy (AUP) sets the standards and expectations for using the Security Policy Awareness & Compliance Management Platform of Savikro Enterprises. The Platform is a web application that gives employees one place to read the company's information security policies, complete security awareness training and quizzes, acknowledge policy updates and report security incidents, and gives management a dashboard to track compliance.
 
-## 2. Scope
+The aim of this policy is to ensure that the Platform is used securely, ethically and responsibly, while protecting the personal data of Savikro Enterprises' employees and the information held in the Platform.
 
-This policy applies to all employees, managers, administrators, temporary staff and anyone else given access to Savikro systems. It covers:
+## 2. Applicability
 
-- Company-owned computers, laptops, tablets, phones and shared warehouse terminals.
-- Personal devices when used for Savikro work (for example, reading work email on your phone).
-- Company email, messaging, cloud storage and business software.
-- The Security Policy Awareness & Compliance Management Platform ("the Platform").
+This AUP applies to every person who is given access to the Platform, including but not limited to:
 
-## 3. General rules
+- registered employees of Savikro Enterprises in the Sales, Warehouse, Administration and Management functions;
+- System Administrators who manage policies, training, users and reports.
 
-1. Company systems are provided for business purposes. Limited personal use is allowed if it does not interfere with your work, cost the company money, or break any other rule in this policy.
-2. You must only access information you need for your job. Being able to open a file does not mean you are allowed to.
-3. You must not install software, browser extensions or apps on company devices unless the Administrator has approved them.
-4. You must not connect unknown USB drives, chargers or other devices to company computers.
-5. You must not use company systems to create, store or send material that is illegal, offensive, harassing or discriminatory.
-6. You must not try to bypass security controls, such as disabling antivirus, sharing accounts or using another person's login.
-7. You must lock your screen (Windows key + L, or the device lock button) whenever you leave a device, even for a short time. This is especially important on shared warehouse terminals.
+It covers all modules of the Platform — User Authentication & Authorisation, Policy Management, Security Training & Awareness, Compliance Tracking & Reporting, and Incident Reporting — all information displayed in or exported from it, and every device used to access it, whether company-owned office desktops, shared warehouse tablets or personally owned mobile phones and laptops. By using the Platform, each user agrees to comply with this policy.
 
-## 4. Company information
+## 3. User Roles and Access
 
-1. Supplier pricing, customer contracts, quotations and customer or dealer details must only be shared with people who need them for Savikro business. See the *Information Classification & Data Handling Policy* (POL-DHC-001).
-2. Do not upload company files to personal cloud storage, personal email or AI chat tools unless the Administrator has approved it.
-3. Do not discuss confidential business matters, such as pricing or margins, on social media or in public places.
+Access to the Platform is controlled by role-based access control (RBAC). Each user is assigned one role when their account is created and can only use the modules and data relevant to that role. Role checks are enforced on the server API layer, not only in the user interface.
 
-## 5. Devices
+| Role | Permitted use of the Platform |
+|------|-------------------------------|
+| **Employee** | Log in and change their own password; view the policies assigned to their role and department; acknowledge each policy version they have read; view their own compliance status; complete assigned training modules and attempt the quizzes; submit incident reports and view the status of the incidents they submitted. |
+| **Manager** | All Employee functions, plus: view the compliance dashboard for their own department; send manual reminders to staff in their department; export compliance reports (PDF/Excel) for their department only; view phishing simulation results for their department as totals only, never for named individuals. |
+| **Administrator** | All Manager functions across the whole organisation, plus: view the organisation-wide compliance dashboard; send reminders to any user and export compliance reports for all departments; create, edit and publish policies and policy versions; create and edit training modules and quizzes; view, triage, assign and resolve all incidents; create, deactivate and change the role of user accounts; view the system audit log; create phishing simulation templates, launch simulations and view all simulation results. |
 
-1. Company devices must be protected with a PIN, password or fingerprint/face lock.
-2. Do not leave laptops, tablets or phones unattended in vehicles, at customer sites or in public places.
-3. A lost or stolen device containing Savikro information must be reported through the Platform immediately (incident type: *Lost or stolen device*). Reporting early lets us lock the device or reset passwords before any harm is done.
-4. When you leave Savikro, you must return all company devices, keys and access cards on or before your last day.
+## 4. Acceptable Use of the Application
 
-## 6. Use of the Compliance Platform
+Users are expected to use each part of the Platform as follows:
 
-1. Your Platform account is personal. Never share your password or let someone else use your session.
-2. You are expected to read and acknowledge policies assigned to you, and to complete assigned training, by the due date shown in *My Tasks*.
-3. Acknowledging a policy means you confirm that you have read it, understood it and will follow it. Only acknowledge a policy once you have actually read it.
-4. Use *Report an incident* for any suspected security problem. Reporting a concern in good faith, including your own mistake, will never lead to disciplinary action.
-5. The Platform records activity such as logins, policy acknowledgements, quiz results and incident reports. This record is used to show compliance and to investigate security events. It is not used to monitor your general work performance.
+- **Accounts:** Use only the account created for you, in your own name, employee ID, department and role. Each account is for one person only and must never be shared.
+- **Policy acknowledgement:** Read each new or updated policy in full before acknowledging it. An acknowledgement is recorded with the policy version and a timestamp.
+- **Training and quizzes:** Complete each training module assigned to your role within 14 days and attempt the quiz yourself, without help from others. Quizzes can be retaken; results are used to improve awareness, not to punish.
+- **Incident reporting:** Report suspicious emails such as phishing, lost or stolen devices, suspicious files or links, and unauthorised access attempts through the in-app Incident Report form as soon as possible and within 24 hours. Reports made in good faith will never lead to disciplinary action.
+- **Compliance dashboard and reports:** Administrators may use the dashboard and exported reports only to monitor policy acknowledgement, training completion and incidents, and must store exported reports only in approved company locations.
+- **Business use only:** The Platform must be used only for Savikro Enterprises' security awareness and compliance purposes.
 
-## 7. Phishing awareness exercises
+## 5. Prohibited Activities
 
-1. With written approval from management, Savikro may send authorised **simulated phishing emails** to staff to measure and improve awareness. The dates and content of individual exercises will not be announced in advance.
-2. If you click a link in a simulated email, you will see a page explaining that it was an exercise and pointing out the warning signs you could have spotted. No passwords or other data are collected.
-3. Individual results are seen only by the Administrator. Managers see department totals only. Results are not used for performance reviews or disciplinary action.
-4. Reporting a suspicious email through the Platform is always the correct response, whether it turns out to be real or simulated.
+Users must not use the Platform in any way that is harmful, illegal, or that infringes on the rights of other individuals or of Savikro Enterprises. The following uses are prohibited.
 
-## 8. Monitoring
+### 5.1 Illegal Activities
 
-Savikro may monitor use of company systems, email and devices to protect the business and to investigate suspected breaches of policy. Monitoring is proportionate and is carried out only by authorised persons.
+- Using the Platform for any activity that breaks Sri Lankan law, including the Computer Crimes Act and the Personal Data Protection Act, or any international law.
+- Uploading or distributing pirated software, illegal material or any content unrelated to company business.
 
-## 9. Breaches of this policy
+### 5.2 Unlawful and Inappropriate Content
 
-Breaking this policy on purpose or through serious carelessness may lead to access being removed and to disciplinary action. Honest mistakes that are reported promptly will be treated as a learning opportunity.
+- Posting, uploading or attaching content that is defamatory, obscene, offensive or harmful.
+- Uploading content that violates the intellectual property rights of others, such as copyright, trademarks and trade secrets.
 
-## 10. Review
+### 5.3 Security Violations
 
-This policy is reviewed at least once a year, or sooner if the business, its systems or the law changes. You will be notified through the Platform whenever a new version is published and asked to acknowledge it.
+- Attempting to access modules, records or reports outside your assigned role, or trying to change your own role or permissions.
+- Trying to bypass login, account lockout, session timeout, re-authentication or input validation, or probing, scanning or testing the Platform without written approval from management.
+- Uploading viruses, malware or any other harmful code, or doing anything that affects the availability of the Platform.
+
+### 5.4 Misrepresentation
+
+- Giving false details for your account, using another person's credentials, or impersonating another employee or entity.
+- Completing training or quizzes on another person's behalf, or acknowledging a policy for someone else.
+- Knowingly submitting false or malicious incident reports.
+
+### 5.5 Misuse of Employee Data
+
+- Altering or deleting policies, acknowledgement records, quiz results or audit logs without authorisation.
+- Using employees' compliance records or quiz scores for any purpose other than security compliance.
+
+### 5.6 Harassment and Abuse
+
+- Using incident reports or any other feature to harass, threaten, bully or falsely accuse other users.
+- Posting content that discriminates against anyone on the basis of race, gender, religion, nationality or any other personal characteristic.
+
+## 6. User Responsibilities and Security Best Practices
+
+All users are responsible for:
+
+- **Protecting login details:** Use a strong, unique password that meets all five Platform requirements — at least **8 characters**, with an **uppercase** letter, a **lowercase** letter, a **number** and a **special character** — and never share it with anyone, including Administrators.
+- **Securing sessions and devices:** Always log out after use, especially on shared warehouse tablets, and never leave a logged-in device unattended.
+- **Using secure connections:** Access the Platform only through its official HTTPS address, and avoid public Wi-Fi when handling sensitive functions.
+- **Recognising phishing:** Verify any message asking for payments, price lists, login details or bank changes by phone before acting on it.
+- **Reporting problems:** Report any suspicious activity, unexpected lockout or security breach to the Administrator immediately through the Incident Reporting module.
+- **Keeping information accurate:** Keep profile details correct, and inform your Manager when an employee leaves or changes role so the account can be updated the same day.
+
+## 7. Employee Data Privacy
+
+The Platform collects only the data needed to run the security awareness programme: name, employee ID, department and role; hashed passwords and login records; policy acknowledgements; training completion and quiz scores; and incident reports. This data is handled in line with the Personal Data Protection Act.
+
+Passwords are stored as bcrypt hashes, all traffic is encrypted with HTTPS/TLS, and compliance data is visible only to the employee concerned and to authorised management. Employees can view their own records at any time and request correction of inaccurate details. The Platform does not track employees' location or any activity outside the Platform.
+
+## 8. Enforcement
+
+The Platform keeps audit logs of logins, policy acknowledgements, training results and incident activity to monitor compliance with this AUP. Administrators, acting under the authority of Savikro Enterprises management, have the right to:
+
+- monitor user activity on the Platform to ensure compliance with this policy;
+- suspend, restrict or deactivate the account of any user found violating this policy;
+- escalate serious violations to top management for disciplinary or legal action where necessary.
+
+Minor violations, such as late acknowledgements, lead to a reminder and retraining. Serious violations, such as account sharing, unauthorised access or data leakage, may lead to account deactivation and disciplinary action. Every suspected violation is investigated using the audit logs, and the user is given a chance to explain before any action is taken.
+
+## 9. Report Violations
+
+Users must report any violation of this policy through the Platform's Incident Reporting module, or directly to the System Administrator or Savikro Enterprises management. Reports should include a description of the violation, the date and time, any available evidence such as a screenshot, and the reporter's account details. High-severity reports, such as a lost device or a compromised account, are sent to the System Administrator immediately. All reports are handled confidentially.
+
+## 10. Amendments
+
+This AUP will be reviewed at least once a year and may be updated when security needs, legal requirements, organisational demands or the Platform's features change. Updated versions are published through the Policy Management module, users are notified, and each user must acknowledge the new version. Continued use of the Platform means acceptance of the updated terms.
 
 ## Acknowledgement
 
