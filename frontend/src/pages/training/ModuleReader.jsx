@@ -69,8 +69,10 @@ const ModuleReader = () => {
   const item = module.contentItems[selected];
   const { quiz } = module;
 
+  // Wide, so the content pane beside the running order has room for a video
+  // or a table rather than being squeezed into what is left of 960px.
   return (
-    <div className="page">
+    <div className="page page--wide">
       <header className="page__header">
         <Link to="/training" className="btn btn--ghost btn--sm">
           ← Training
