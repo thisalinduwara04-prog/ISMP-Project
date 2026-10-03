@@ -99,8 +99,10 @@ const ModulePlayer = () => {
   // the side panel's button uses, so the two can never disagree.
   const quizReady = task.quizUnlocked && !quiz.passed && quiz.attemptsRemaining !== 0;
 
+  // Wide, so the content pane beside the running order has room for a video
+  // or a table rather than being squeezed into what is left of 960px.
   return (
-    <div className="page">
+    <div className="page page--wide">
       <header className="page__header">
         <Link to="/training" className="btn btn--ghost btn--sm">
           ← Training
