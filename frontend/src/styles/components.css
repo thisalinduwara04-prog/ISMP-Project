@@ -1906,6 +1906,24 @@
   background: #000;
 }
 
+/* An embedded (YouTube) video. An iframe has no natural height, so the box is
+   held at 16:9 and the frame fills it - full width on a phone, never taller
+   than the screen on a desktop. */
+.player__embed {
+  width: 100%;
+  max-width: calc(60vh * 16 / 9);
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: #000;
+}
+
+.player__embed iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
 /* ---------------------------------------------------------------------------
    Training on a phone (M3-T7 · NFR-USE-01/02)
    --------------------------------------------------------------------------- */
