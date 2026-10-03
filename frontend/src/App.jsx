@@ -17,6 +17,7 @@ import ModuleList from './pages/training/ModuleList';
 import ModuleBuilder from './pages/training/ModuleBuilder';
 import ModulePlayer from './pages/training/ModulePlayer';
 import ModuleReader from './pages/training/ModuleReader';
+import ModuleQuizKey from './pages/training/ModuleQuizKey';
 import QuizAttempt from './pages/training/QuizAttempt';
 import DepartmentDashboard from './pages/home/DepartmentDashboard';
 import AdminConsole from './pages/home/AdminConsole';
@@ -122,6 +123,14 @@ const App = () => (
           element={(
             <RequireCapability capability={CAPABILITIES.TRAINING_AUTHOR}>
               <ModuleReader />
+            </RequireCapability>
+          )}
+        />
+        <Route
+          path="/training/modules/:moduleId/read/quiz"
+          element={(
+            <RequireCapability capability={CAPABILITIES.TRAINING_AUTHOR}>
+              <ModuleQuizKey />
             </RequireCapability>
           )}
         />

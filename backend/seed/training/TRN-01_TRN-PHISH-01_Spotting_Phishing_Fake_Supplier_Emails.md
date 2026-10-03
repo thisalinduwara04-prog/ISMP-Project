@@ -103,7 +103,7 @@ Tap **Report an incident → Suspicious email / phishing**, attach a screenshot 
 
 ## Part 3: Clicked by mistake? The first five minutes
 
-*Type: VIDEO · About 3 min · Video URL: to be added*
+*Type: VIDEO · About 3 min · Video URL: https://www.youtube.com/watch?v=UdSbbjyWJRA*
 
 **Video script (≈3 minutes) — record and replace mediaUrl with the hosted file.**
 

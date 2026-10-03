@@ -95,6 +95,9 @@ const ModulePlayer = () => {
   const isDone = item && done.has(item.itemId);
   const isLast = selected === module.contentItems.length - 1;
   const { quiz } = task;
+  // Every section is finished and the quiz is still to take - the same test
+  // the side panel's button uses, so the two can never disagree.
+  const quizReady = task.quizUnlocked && !quiz.passed && quiz.attemptsRemaining !== 0;
 
   return (
     <div className="page">
@@ -202,22 +205,36 @@ const ModulePlayer = () => {
                   loop, and it belongs under the thumb rather than below a
                   screen of reading (NFR-USE-02). */}
               <div className="confirm-actions actionbar">
-                <button
-                  type="button"
-                  className="btn btn--primary"
-                  disabled={busy}
-                  onClick={() => complete(item.itemId, !isLast)}
-                >
-                  {busy
-                    ? 'Saving…'
-                    : isDone
-                      ? isLast
-                        ? 'Done'
-                        : 'Next section'
-                      : isLast
-                        ? 'Mark complete'
-                        : 'Mark complete and continue'}
-                </button>
+                {/* On the last section, once everything is done, the next
+                    step is the quiz - offered right here under the thumb
+                    rather than only in the side panel. */}
+                {isLast && isDone && quizReady ? (
+                  <button
+                    type="button"
+                    className="btn btn--primary"
+                    disabled={busy}
+                    onClick={openQuiz}
+                  >
+                    {busy ? 'Opening…' : quiz.activeAttemptId ? 'Resume the quiz' : 'Start the quiz'}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn--primary"
+                    disabled={busy}
+                    onClick={() => complete(item.itemId, !isLast)}
+                  >
+                    {busy
+                      ? 'Saving…'
+                      : isDone
+                        ? isLast
+                          ? 'Done'
+                          : 'Next section'
+                        : isLast
+                          ? 'Mark complete'
+                          : 'Mark complete and continue'}
+                  </button>
+                )}
 
                 {selected > 0 && (
                   <button

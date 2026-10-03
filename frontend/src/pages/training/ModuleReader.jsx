@@ -9,25 +9,17 @@ import { formatDate } from '../../utils/format';
 import { DEPARTMENT_LABELS, POLICY_CATEGORY_LABELS, ROLE_LABELS } from '../../constants';
 
 // The admin's read-only view of a module - the training counterpart of a
-// policy's "Read". It shows the content exactly as staff see it, then the quiz
-// with the correct options marked, and nothing on it can be changed. Editing
-// stays on the builder, one deliberate click away, so looking at a live module
-// cannot alter what staff are graded against by accident.
-//
-// The answer key is here because this route is gated on TRAINING_AUTHOR and the
-// API only returns `isCorrect` to an author (AD-3).
+// policy's "Read". It shows the content exactly as staff see it, and nothing on
+// it can be changed. The quiz, with its answer key, opens on its own page from
+// the button at the end of the running order (ModuleQuizKey). Editing stays on
+// the builder, one deliberate click away, so looking at a live module cannot
+// alter what staff are graded against by accident.
 
 const CONTENT_TYPE_LABELS = {
   ARTICLE: 'Article',
   WALKTHROUGH: 'Walkthrough',
   VIDEO: 'Video',
   PDF: 'PDF',
-};
-
-const QUESTION_TYPE_LABELS = {
-  SINGLE_CHOICE: 'One correct answer',
-  MULTI_CHOICE: 'Several correct answers',
-  TRUE_FALSE: 'True or false',
 };
 
 const describeAudience = (module) => {
@@ -144,6 +136,17 @@ const ModuleReader = () => {
               </li>
             ))}
           </ol>
+
+          {/* The quiz sits at the end of the running order and opens on its
+              own page, the same way staff go from the content to the quiz. */}
+          <div className="builder__add">
+            <Link
+              to={`/training/modules/${module.id}/read/quiz`}
+              className="btn btn--primary btn--block"
+            >
+              View the quiz ({quiz.questions.length})
+            </Link>
+          </div>
         </aside>
 
         <section className="card builder__pane">
@@ -157,63 +160,6 @@ const ModuleReader = () => {
           )}
         </section>
       </div>
-
-      <section className="card">
-        <h2>Quiz</h2>
-        <dl className="detail-list">
-          <div>
-            <dt>Pass mark</dt>
-            <dd>{quiz.passMark}%</dd>
-          </div>
-          <div>
-            <dt>Attempts allowed</dt>
-            <dd>{quiz.maxAttempts}</dd>
-          </div>
-          <div>
-            <dt>Time limit</dt>
-            <dd>{quiz.timeLimitMinutes ? `${quiz.timeLimitMinutes} minutes` : 'Untimed'}</dd>
-          </div>
-          <div>
-            <dt>Question order</dt>
-            <dd>{quiz.shuffleQuestions ? 'Shuffled for each attempt' : 'As listed below'}</dd>
-          </div>
-        </dl>
-      </section>
-
-      {quiz.questions.length === 0 && (
-        <section className="card">
-          <p className="muted">This module has no questions yet.</p>
-        </section>
-      )}
-
-      {quiz.questions.map((question, index) => (
-        <section className="card qcard" key={question.questionId}>
-          <div className="field__row">
-            <span className="field__label">Question {index + 1}</span>
-            <span className="muted">{QUESTION_TYPE_LABELS[question.type] || question.type}</span>
-          </div>
-
-          <p className="answer-question">{question.text}</p>
-
-          <ul className="answer-list">
-            {question.options.map((option) => (
-              <li
-                key={option.optionId}
-                className={`answer-list__item${option.isCorrect ? ' answer-list__item--correct' : ''}`}
-              >
-                <span>{option.text}</span>
-                {option.isCorrect && <span className="badge badge--ok">correct</span>}
-              </li>
-            ))}
-          </ul>
-
-          {question.explanation && (
-            <p className="muted">
-              <strong>Explanation:</strong> {question.explanation}
-            </p>
-          )}
-        </section>
-      ))}
     </div>
   );
 };
